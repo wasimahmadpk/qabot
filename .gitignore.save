@@ -1,0 +1,23 @@
+# Byte-compiled / cache
+__pycache__/
+*.py[cod]
+
+# Virtual envs
+env/
+.venv/
+
+# Streamlit + Anaconda junk
+.streamlit/
+*.DS_Store
+*.sqlite3
+
+# Python environment
+*.egg-info/
+.env
+openai_key.txt
+
+# Large local files
+docs/
+
+
+
