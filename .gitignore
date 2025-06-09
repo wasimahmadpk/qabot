@@ -19,3 +19,4 @@ build/
 .streamlit/
 .ipynb_checkpoints/
 *.pyc
+docs/thesis.pdf
