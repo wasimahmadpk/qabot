@@ -43,8 +43,6 @@ from src.query_engine import get_query_engine, query_index
 
 api_key = os.getenv("OPENAI_API_KEY")
 
-st.title("QA Bot - Upload Your Documents")
-
 st.markdown("### 📄 Upload Your Document")
 uploaded_files = st.file_uploader("Upload documents (txt, pdf, docx)", accept_multiple_files=True)
 
