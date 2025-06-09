@@ -25,7 +25,8 @@ if uploaded_files:
         query = st.text_input("Ask a question about your uploaded documents:")
         if query:
             response = query_index(query_engine, query)
-            st.write(response)
+            st.write(response.response)  # or response.text / response.content depending on type
+
     else:
         st.warning("No valid documents uploaded.")
 else:
