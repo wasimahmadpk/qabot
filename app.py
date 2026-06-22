@@ -40,6 +40,7 @@ import os
 from src.loader import load_documents_from_upload
 from src.indexer import create_index
 from src.query_engine import get_query_engine, query_index
+from src.upload_cache import upload_signature
 
 api_key = os.getenv("OPENAI_API_KEY")
 
@@ -47,27 +48,34 @@ st.markdown("### 📄 Upload Your Document")
 uploaded_files = st.file_uploader("Upload documents (txt, pdf, docx)", accept_multiple_files=True)
 
 if uploaded_files:
-    docs = load_documents_from_upload(uploaded_files)
-    if docs:
-        # Create index for uploaded docs
-        index = create_index(docs)
-        query_engine = get_query_engine(index)
+    sig = upload_signature(uploaded_files)
+    if st.session_state.get("upload_sig") != sig:
+        docs = load_documents_from_upload(uploaded_files)
+        if docs:
+            index = create_index(docs)
+            st.session_state.upload_sig = sig
+            st.session_state.query_engine = get_query_engine(index)
+            st.session_state.doc_count = len(docs)
+        else:
+            st.session_state.pop("upload_sig", None)
+            st.session_state.pop("query_engine", None)
+            st.session_state.pop("doc_count", None)
 
-        st.success(f"Uploaded and indexed {len(docs)} documents!")
+    query_engine = st.session_state.get("query_engine")
+    if query_engine:
+        st.success(f"Uploaded and indexed {st.session_state.doc_count} documents!")
         st.markdown("### 🤖 Ask a Question")
         query = st.text_input("Ask a question about your uploaded documents:")
-        # if query:
-            
-        #     response = query_index(query_engine, query)
-        #     st.write(response.response)  # or response.text / response.content depending on type
 
         if query:
             with st.spinner("Thinking..."):
                 response = query_index(query_engine, query)
             st.markdown("#### 📌 Answer:")
-            st.success(response)
-
+            st.success(str(response))
     else:
         st.warning("No valid documents uploaded.")
 else:
+    st.session_state.pop("upload_sig", None)
+    st.session_state.pop("query_engine", None)
+    st.session_state.pop("doc_count", None)
     st.info("Please upload documents to get started.")
