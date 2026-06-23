@@ -20,6 +20,31 @@
     "file_name": "sample_policy.txt"
   },
   {
+    "question": "What is the minimum password length?",
+    "expected_keywords": ["14"],
+    "file_name": "sample_policy.txt"
+  },
+  {
+    "question": "How quickly must security incidents be reported?",
+    "expected_keywords": ["24 hours"],
+    "file_name": "sample_policy.txt"
+  },
+  {
+    "question": "How many PTO days can carry over to the next year?",
+    "expected_keywords": ["5 days"],
+    "file_name": "sample_policy.txt"
+  },
+  {
+    "question": "How long are customer contracts retained?",
+    "expected_keywords": ["7 years"],
+    "file_name": "sample_policy.txt"
+  },
+  {
+    "question": "What CI system builds documentation releases?",
+    "expected_keywords": ["jenkins"],
+    "file_name": "sample_policy.txt"
+  },
+  {
     "question": "What is the capital of France?",
     "expected_keywords": ["don't know"],
     "file_name": "sample_policy.txt"

@@ -1,21 +1,500 @@
-QABot Company Remote Work Policy
+QABOT TECHNOLOGIES — ENTERPRISE EMPLOYEE & OPERATIONS HANDBOOK
+Document ID: QBT-HANDBOOK-2024-001
+Version: 4.2
+Effective date: January 15, 2024
+Last revised: November 2024
+Classification: Internal — All Employees
+Owner: People Operations & Information Security
+Review cycle: Annual (next review: January 2025)
 
-Effective date: January 2024
+================================================================================
+TABLE OF CONTENTS
+================================================================================
+1. Introduction and Scope
+2. Remote Work and Hybrid Working Policy
+3. Information Security and Acceptable Use
+4. Identity, Access Management, and Authentication
+5. Data Classification, Privacy, and Retention
+6. Incident Response and Business Continuity
+7. Human Resources — Leave, Benefits, and Conduct
+8. IT Service Management and End-User Support
+9. Travel, Expenses, and Procurement
+10. Engineering Standards and Software Development Lifecycle
+11. AI Systems, LLM Usage, and Retrieval-Augmented Documentation
+12. Vendor Management and Third-Party Risk
+13. Physical Security and Office Access
+14. Health, Safety, and Workplace Conduct
+15. Appendices A–F
 
-Overview
-All employees may work remotely up to three days per week. Remote work must be approved by the direct manager.
+================================================================================
+1. INTRODUCTION AND SCOPE
+================================================================================
 
-Core hours
-Employees must be available between 10:00 and 16:00 Central European Time on remote days.
+1.1 Purpose
+This handbook consolidates policies governing employment, workplace conduct, information
+security, and operational procedures at QABot Technologies GmbH. All employees, contractors,
+interns, and temporary staff with access to QABot systems must comply with this document.
 
-Equipment
-The company provides a laptop and an external monitor for eligible remote employees. Employees are responsible for a stable internet connection.
+1.2 Applicability
+Policies apply to all business units including Engineering, Product, Sales, Customer Success,
+Finance, Legal, and People Operations. Regional supplements may apply for employees based in
+Germany, Austria, Switzerland, and other EEA locations.
 
-Security
-All remote access must use the company VPN. Confidential documents must not be stored on personal devices.
+1.3 Definitions
+"Employee" means any individual with an active employment or contractor agreement.
+"Confidential Information" means data classified as Internal, Restricted, or Highly Restricted.
+"Production Systems" means customer-facing services, internal platforms with SLA commitments,
+and documentation portals serving external users.
+"Hybrid Employee" means an employee splitting work between office and remote locations.
 
-Support
-For IT issues during remote work, contact helpdesk@qabot.example or extension 4500.
+1.4 Acknowledgment
+All employees must acknowledge receipt of this handbook within five business days of hire or
+within ten business days after a material policy update. Acknowledgment is recorded in the HRIS.
 
-Review
-This policy is reviewed annually by the People Operations team.
+1.5 Questions and Exceptions
+Policy questions should be directed to People Operations at peopleops@qabot.example.
+Exception requests require written approval from the employee's director and, where applicable,
+Information Security or Legal.
+
+================================================================================
+2. REMOTE WORK AND HYBRID WORKING POLICY
+================================================================================
+
+2.1 Overview
+QABot supports flexible hybrid work to attract talent, reduce commute burden, and maintain
+collaboration in our Böblingen headquarters and satellite offices. This section defines
+eligibility, approval workflows, availability expectations, and security requirements.
+
+2.2 Eligibility
+All full-time employees who have completed probation (typically 6 months) are eligible for
+hybrid arrangements unless role requirements mandate on-site presence (e.g., data center
+technicians, reception, certain lab roles). Part-time employees may request hybrid work;
+approval is at manager discretion.
+
+2.3 Remote Day Allowance
+All employees may work remotely up to three days per week. Remote work must be approved by
+the direct manager. Managers document approved patterns in the team roster. Exceeding three
+remote days requires vice-president approval and a business justification.
+
+2.4 Core Hours and Availability
+On remote days, employees must be available between 10:00 and 16:00 Central European Time
+for meetings, pair programming, customer calls, and synchronous collaboration. Outside core
+hours, async communication via Slack and email is expected with reasonable response times.
+
+2.5 Office Anchor Days
+Each engineering team designates at least one "anchor day" per week for in-person collaboration.
+Team leads publish anchor days at the start of each quarter. Attendance on anchor days is
+mandatory unless approved absence is recorded in the calendar.
+
+2.6 Equipment and Workspace
+The company provides a laptop and an external monitor for eligible remote employees. Standard
+issue laptops are refreshed every 36 months. Employees are responsible for a stable internet
+connection with minimum 50 Mbps download and 10 Mbps upload. Home office ergonomic assessments
+are available upon request through People Operations.
+
+2.7 Security Requirements for Remote Work
+All remote access must use the company VPN. Confidential documents must not be stored on
+personal devices, USB drives, or unsanctioned cloud storage. Screen locks must activate after
+five minutes of inactivity. Video calls discussing Restricted data require approved backgrounds
+or blur filters.
+
+2.8 International Remote Work
+Working from outside the employee's contracted country for more than 14 consecutive days
+requires advance approval from HR and Legal due to tax and labor law implications. Emergency
+exceptions may be granted for maximum 30 days per calendar year.
+
+2.9 Performance Expectations
+Remote work is not a substitute for performance standards. Managers evaluate outcomes, not
+physical presence. Persistent failure to meet availability or deliverable expectations may
+result in revocation of remote privileges.
+
+2.10 Review
+This policy is reviewed annually by the People Operations team. Feedback may be submitted via
+the internal policy portal.
+
+================================================================================
+3. INFORMATION SECURITY AND ACCEPTABLE USE
+================================================================================
+
+3.1 Security Principles
+QABot follows defense-in-depth: least privilege, separation of duties, encryption in transit
+and at rest, and continuous monitoring. All employees share responsibility for protecting
+customer data and intellectual property.
+
+3.2 Acceptable Use of Company Systems
+Company laptops, networks, email, and SaaS tools are provided for business purposes.
+Limited personal use is permitted if it does not interfere with work, violate law, or consume
+excessive bandwidth. Prohibited activities include unauthorized cryptocurrency mining, torrenting
+copyrighted material, and accessing adult or extremist content on company networks.
+
+3.3 Software Installation
+Only software from the approved catalog or installed via the corporate MDM may be used on
+company devices. Requests for exceptions go through the Service Desk with manager approval.
+
+3.4 Email and Phishing
+Employees must report suspected phishing to security@qabot.example within one hour. Never
+click suspicious links. Multi-factor authentication is mandatory for email and SSO.
+
+3.5 Removable Media
+Use of USB storage devices is disabled by default. Exceptions require Information Security
+approval and device encryption.
+
+3.6 Clean Desk and Clear Screen
+In office environments, confidential papers must be secured when unattended. Whiteboards with
+customer data must be erased after meetings.
+
+3.7 Security Awareness Training
+All employees complete annual security training and quarterly phishing simulations. Failure to
+complete training by due date may suspend VPN access until completion.
+
+================================================================================
+4. IDENTITY, ACCESS MANAGEMENT, AND AUTHENTICATION
+================================================================================
+
+4.1 Single Sign-On
+Corporate applications authenticate via the company SSO provider. Password reuse across
+personal and corporate accounts is prohibited.
+
+4.2 Password Standards
+Passwords must be at least 14 characters and include uppercase, lowercase, numeric, and
+special characters. Password managers (1Password Business) are provided to all employees.
+
+4.3 Multi-Factor Authentication
+MFA is required for VPN, source code repositories, production consoles, and HR systems.
+Hardware security keys are issued to employees with production access.
+
+4.4 Access Provisioning
+New hire access is provisioned via automated workflows tied to HRIS start dates. Managers
+approve role-based access requests in the IAM portal. Access reviews occur quarterly.
+
+4.5 Offboarding
+Upon termination, all access is revoked within four hours for involuntary separation and
+within 24 hours for voluntary resignation. Laptops must be returned within five business days.
+
+4.6 Privileged Access
+Administrative accounts are separate from daily-use accounts. Privileged sessions are logged
+and reviewed monthly.
+
+================================================================================
+5. DATA CLASSIFICATION, PRIVACY, AND RETENTION
+================================================================================
+
+5.1 Classification Levels
+Public: marketing materials approved for external release.
+Internal: operational documents not intended for public disclosure.
+Restricted: customer data, contracts, unreleased product plans.
+Highly Restricted: credentials, encryption keys, M&A materials, regulated health/financial data.
+
+5.2 Handling Requirements
+Restricted and Highly Restricted data must be encrypted at rest, shared only on approved
+platforms, and labeled in document headers. Downloading Restricted data to local devices
+requires business justification.
+
+5.3 GDPR and Privacy
+Personal data processing follows GDPR principles: lawfulness, purpose limitation, data
+minimization, accuracy, storage limitation, integrity, and confidentiality. Data Subject
+Access Requests are handled by Legal within 30 days.
+
+5.4 Retention Schedule
+Customer contracts and billing records: retained for 7 years after contract end.
+Employee personnel files: retained for 10 years after separation.
+Security incident records: retained for 7 years.
+Ephemeral chat logs in Slack: 365 days unless legal hold applies.
+
+5.5 Data Loss Prevention
+DLP rules scan email and cloud storage for patterns matching credit cards, API keys, and
+national ID numbers. Violations trigger automatic quarantine and Security review.
+
+5.6 Cross-Border Transfers
+Transfers outside the EEA require Standard Contractual Clauses or adequacy decisions documented
+by Legal.
+
+================================================================================
+6. INCIDENT RESPONSE AND BUSINESS CONTINUITY
+================================================================================
+
+6.1 Incident Categories
+Severity 1 (Critical): production outage affecting all customers.
+Severity 2 (Major): partial outage or data exposure risk.
+Severity 3 (Minor): isolated team impact.
+Severity 4 (Informational): near-miss or policy violation without customer impact.
+
+6.2 Reporting Obligations
+All employees must report suspected security incidents to security@qabot.example within
+24 hours of discovery. Severity 1 incidents require immediate phone escalation to the on-call
+Security lead via PagerDuty.
+
+6.3 Incident Response Team
+The IRT includes representatives from Security, Engineering, Legal, Communications, and
+Customer Success. The incident commander rotates weekly among senior engineers.
+
+6.4 Containment and Eradication
+Containment steps may include isolating affected systems, rotating credentials, and blocking
+malicious IPs. Root cause analysis must be completed within 10 business days for Severity 1–2.
+
+6.5 Customer Notification
+Legal and Communications jointly determine customer notification timelines for data breaches
+under GDPR (72-hour authority notification where applicable).
+
+6.6 Business Continuity
+Critical systems target RPO of 1 hour and RTO of 4 hours. Annual tabletop exercises validate
+failover to secondary EU regions.
+
+6.7 Post-Incident Review
+Blameless postmortems are published internally within five business days. Action items tracked
+in Jira with owners and due dates.
+
+================================================================================
+7. HUMAN RESOURCES — LEAVE, BENEFITS, AND CONDUCT
+================================================================================
+
+7.1 Working Hours
+Standard full-time schedule is 40 hours per week. Overtime for non-exempt roles follows local
+labor law. Exempt employees are expected to manage time flexibly while meeting objectives.
+
+7.2 Paid Time Off (PTO)
+Employees accrue 30 days PTO per year in Germany (including public holidays per local calendar).
+Up to 5 days unused PTO may carry over to the next calendar year; excess is forfeited unless
+director approval is granted.
+
+7.3 Sick Leave
+Employees notify their manager before 09:30 on sick days. Medical certificates are required
+for absences exceeding three consecutive days.
+
+7.4 Parental Leave
+Parental leave follows statutory requirements in the employee's country. HR coordinates
+documentation eight weeks before expected leave start.
+
+7.5 Benefits
+QABot offers Deutschland job-ticket subsidy, bike leasing, EGYM Wellpass, private health
+supplement (country-dependent), pension contributions, and learning stipend of 2,000 EUR per year.
+
+7.6 Code of Conduct
+Harassment, discrimination, retaliation, and violence are zero-tolerance violations. Reports
+may be made to HR or the anonymous ethics hotline.
+
+7.7 Performance Management
+Annual performance reviews occur in Q4. Mid-year check-ins are mandatory. Performance improvement
+plans last 60 days with weekly manager syncs.
+
+7.8 Remote Work and HR
+Hybrid eligibility is described in Section 2. HRIS records approved remote patterns. Changes
+require manager update within two business days.
+
+================================================================================
+8. IT SERVICE MANAGEMENT AND END-USER SUPPORT
+================================================================================
+
+8.1 Service Desk
+For IT issues during remote work, contact helpdesk@qabot.example or extension 4500. Hours:
+Monday–Friday 08:00–18:00 CET. Severity 1 production issues: 24/7 on-call via PagerDuty.
+
+8.2 Ticketing
+All requests must be logged in ServiceNow. Slack DMs to IT staff do not replace tickets for
+trackable work.
+
+8.3 Standard Lead Times
+Laptop provisioning: 5 business days for new hires.
+Access requests: 2 business days after manager approval.
+VPN troubleshooting: same business day target.
+
+8.4 Change Management
+Production changes follow CAB approval except break-glass emergencies documented within
+one hour post-change.
+
+8.5 Documentation Platforms
+Internal technical documentation is published via the Eclipse-based online help system and
+the developer portal. Documentation updates are built and released through Jenkins CI pipelines
+described in Section 10.
+
+8.6 Endpoint Management
+Devices enroll in MDM at first boot. Lost or stolen devices must be reported within two hours
+to trigger remote wipe.
+
+================================================================================
+9. TRAVEL, EXPENSES, AND PROCUREMENT
+================================================================================
+
+9.1 Business Travel
+Travel must be pre-approved in Concur for trips exceeding 500 EUR estimated cost. Book via
+approved travel agency where corporate rates apply.
+
+9.2 Expense Reimbursement
+Submit expenses within 30 days of incurring cost. Receipts required above 25 EUR. Alcohol is
+not reimbursable except approved client entertainment with director sign-off.
+
+9.3 Per Diems
+Domestic Germany per diem follows BMF rates. International per diems use company table updated
+quarterly.
+
+9.4 Procurement
+Purchases above 5,000 EUR require competitive quotes. Software purchases require Security review
+for data processing agreements.
+
+9.5 Corporate Card
+Issued to managers and frequent travelers. Personal charges are grounds for card revocation.
+
+================================================================================
+10. ENGINEERING STANDARDS AND SOFTWARE DEVELOPMENT LIFECYCLE
+================================================================================
+
+10.1 Source Control
+All production code resides in GitHub Enterprise. Direct commits to main are prohibited.
+Pull requests require one approval for internal tools and two for customer-facing services.
+
+10.2 Continuous Integration
+Jenkins CI runs unit tests, integration tests, static analysis, and documentation builds on
+every pull request. Main branch must remain green. Failed builds block release.
+
+10.3 Testing Requirements
+Unit test coverage target: 80% for new code in core services. End-to-end tests run nightly
+against staging environments.
+
+10.4 Release Management
+Releases use semantic versioning. Customer-facing releases require release notes, rollback plan,
+and on-call handoff. Maintenance windows communicated 72 hours in advance.
+
+10.5 Documentation as Code
+Technical writers and engineers author XML source files transformed via XSLT into HTML for the
+online help system. Documentation PRs follow the same review process as code.
+
+10.6 Observability
+Services export metrics to Prometheus, traces to Tempo, and logs to Loki. SLO error budgets
+ reviewed weekly in engineering staff meeting.
+
+10.7 Dependency Management
+Dependabot alerts must be triaged within 7 days. Critical CVEs patched within 48 hours for
+production dependencies.
+
+================================================================================
+11. AI SYSTEMS, LLM USAGE, AND RETRIEVAL-AUGMENTED DOCUMENTATION
+================================================================================
+
+11.1 Approved AI Tools
+Employees may use company-approved LLM integrations for coding assistance, documentation
+drafting, and internal search. Uploading Restricted or Highly Restricted data to public LLM
+services is prohibited.
+
+11.2 RAG Architecture Standards
+Internal knowledge systems use retrieval-augmented generation pipelines: document ingestion,
+chunking (default 512 tokens with 128 overlap), embedding, vector storage, retrieval, and
+grounded generation. Answers must cite source documents.
+
+11.3 Evaluation Metrics
+Production RAG systems must track retrieval hit rate, answer groundedness, latency (p50/p95),
+and hallucination rate on golden question sets reviewed quarterly.
+
+11.4 Model Selection
+Open-source models (e.g., Llama, Qwen) may be deployed on-premises for air-gapped workloads.
+Cloud models require vendor DPAs and EU data residency review.
+
+11.5 Human Oversight
+Customer-facing AI features require human review workflows for high-risk outputs. Escalation
+paths documented in runbooks.
+
+11.6 Prompt Engineering
+System prompts must instruct models to answer only from retrieved context and refuse when
+evidence is insufficient. Prompt versions are stored in Git with change history.
+
+11.7 Vector Databases
+Approved vector stores include Chroma (development), managed Pinecone (staging), and internal
+Milvus clusters (production). Collection naming follows env-team-corpus pattern.
+
+11.8 MCP and Tool Integration
+Model Context Protocol servers exposing search and ticket creation must authenticate via SSO
+and respect row-level security on source systems.
+
+================================================================================
+12. VENDOR MANAGEMENT AND THIRD-PARTY RISK
+================================================================================
+
+12.1 Vendor Assessment
+New vendors processing personal or Restricted data complete security questionnaires and DPAs
+before contract signature.
+
+12.2 Annual Review
+Tier 1 vendors re-assessed annually. Tier 2 every two years.
+
+12.3 Subprocessors
+Subprocessor changes require 30-day customer notification where contracts mandate.
+
+12.4 Exit Strategy
+Contracts define data return and deletion within 90 days of termination.
+
+================================================================================
+13. PHYSICAL SECURITY AND OFFICE ACCESS
+================================================================================
+
+13.1 Badge Access
+Employee badges are personal. Tailgating is prohibited. Report lost badges immediately.
+
+13.2 Visitors
+Visitors sign NDA at reception and wear guest badges. Escort required in Restricted areas.
+
+13.3 Server Rooms
+Dual authentication required. Access logged and reviewed monthly.
+
+13.4 After-Hours Access
+After-hours office entry requires manager pre-approval logged in access system.
+
+================================================================================
+14. HEALTH, SAFETY, AND WORKPLACE CONDUCT
+================================================================================
+
+14.1 Emergency Procedures
+Fire assembly points posted on each floor. Evacuation drills conducted semi-annually.
+
+14.2 First Aid
+Trained first aiders listed on intranet. Accident reports filed within 24 hours to HR.
+
+14.3 Workplace Adjustments
+Reasonable accommodations coordinated through HR and occupational health providers.
+
+14.4 Substance Policy
+Being under the influence of alcohol or illegal drugs on company premises is prohibited.
+
+================================================================================
+APPENDIX A — REMOTE WORK QUICK REFERENCE
+================================================================================
+- Maximum remote days: three per week
+- Approval: direct manager
+- Core hours (CET): 10:00 – 16:00
+- VPN: mandatory for all remote access
+- IT support: helpdesk@qabot.example, ext. 4500
+
+================================================================================
+APPENDIX B — PASSWORD AND MFA QUICK REFERENCE
+================================================================================
+- Minimum password length: 14 characters
+- MFA: required for VPN, GitHub, production
+- Password manager: 1Password Business
+
+================================================================================
+APPENDIX C — INCIDENT REPORTING QUICK REFERENCE
+================================================================================
+- Report to: security@qabot.example
+- Maximum reporting delay: 24 hours
+- Severity 1: call PagerDuty on-call immediately
+
+================================================================================
+APPENDIX D — PTO QUICK REFERENCE
+================================================================================
+- Annual PTO (Germany): 30 days
+- Carryover maximum: 5 days
+
+================================================================================
+APPENDIX E — DATA RETENTION QUICK REFERENCE
+================================================================================
+- Customer contracts: 7 years
+- Security incidents: 7 years
+- Slack messages: 365 days default
+
+================================================================================
+APPENDIX F — DOCUMENT REVISION HISTORY
+================================================================================
+Version 4.2 (November 2024): Added Section 11 AI/RAG standards; updated Jenkins CI references.
+Version 4.1 (June 2024): Clarified hybrid anchor days.
+Version 4.0 (January 2024): Major rewrite consolidating remote work and security policies.
+Version 3.x: Legacy policies superseded by this handbook.
+
+END OF DOCUMENT
