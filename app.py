@@ -139,10 +139,10 @@ def render_sidebar():
         )
 
         st.divider()
-        st.markdown("### Interview demo tip")
+        st.markdown("### Evaluation")
         st.info(
-            "Upload `eval/sample_policy.txt` for the built-in evaluation set. "
-            "Use sample questions on the Ask tab, then run **Evaluate RAG**."
+            "The **Evaluate RAG** tab runs golden Q&A checks against indexed documents. "
+            "Use the sample handbook from the repo or upload your own policy files."
         )
 
 
@@ -227,8 +227,7 @@ def render_qa_tab():
         st.markdown(
             """
             <div class="stat-card">
-            👋 **Get started** — upload one or more documents above.
-            For the evaluation demo, use <code>eval/sample_policy.txt</code>.
+            👋 **Get started** — upload one or more documents above to build your knowledge base.
             </div>
             """,
             unsafe_allow_html=True,
@@ -314,7 +313,7 @@ def render_eval_tab():
     sample_path = Path("eval/sample_policy.txt")
     if sample_path.exists():
         st.download_button(
-            label="Download sample handbook (eval demo)",
+            label="Download sample handbook",
             data=sample_path.read_bytes(),
             file_name="sample_policy.txt",
             mime="text/plain",
@@ -332,7 +331,7 @@ def render_eval_tab():
 
     report = st.session_state.get("eval_report")
     if not report:
-        st.info("Click **Run evaluation suite** after indexing `sample_policy.txt`.")
+        st.info("Click **Run evaluation suite** after documents have been indexed.")
         return
 
     summary = report["summary"]
