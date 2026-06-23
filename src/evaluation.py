@@ -6,7 +6,29 @@ DEFAULT_EVAL_PATH = Path(__file__).resolve().parent.parent / "eval" / "qa_pairs.
 
 def load_qa_pairs(path=DEFAULT_EVAL_PATH):
     with open(path, encoding="utf-8") as handle:
-        return json.load(handle)
+        return parse_qa_pairs_json(handle.read())
+
+
+def parse_qa_pairs_json(raw_json):
+    """Parse and validate a golden Q&A JSON payload."""
+    data = json.loads(raw_json)
+    if not isinstance(data, list):
+        raise ValueError("Evaluation JSON must be a list of question objects.")
+
+    validated = []
+    for index, item in enumerate(data, start=1):
+        if not isinstance(item, dict):
+            raise ValueError(f"Item {index} must be an object.")
+        if "question" not in item:
+            raise ValueError(f"Item {index} is missing 'question'.")
+        validated.append(
+            {
+                "question": str(item["question"]),
+                "expected_keywords": list(item.get("expected_keywords", [])),
+                "file_name": item.get("file_name"),
+            }
+        )
+    return validated
 
 
 def retrieval_hit(expected_keywords, sources):

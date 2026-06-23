@@ -2,12 +2,8 @@ import unittest
 
 from llama_index.core import Document
 
-from src.chunking import (
-    DEFAULT_CHUNK_OVERLAP,
-    DEFAULT_CHUNK_SIZE,
-    chunk_documents,
-    chunk_stats,
-)
+from src.chunking import chunk_documents, chunk_stats, get_splitter
+from src.rag_config import DEFAULT_CHUNK_OVERLAP, DEFAULT_CHUNK_SIZE
 
 
 class ChunkingTests(unittest.TestCase):
@@ -42,6 +38,18 @@ class ChunkingTests(unittest.TestCase):
     def test_defaults_match_documented_strategy(self):
         self.assertEqual(DEFAULT_CHUNK_SIZE, 512)
         self.assertEqual(DEFAULT_CHUNK_OVERLAP, 128)
+
+    def test_token_strategy_uses_token_splitter(self):
+        docs = [Document(text="alpha beta gamma delta", metadata={"file_name": "a.txt"})]
+        splitter = get_splitter("token", chunk_size=2, chunk_overlap=0)
+        self.assertEqual(splitter.__class__.__name__, "TokenTextSplitter")
+        nodes = chunk_documents(docs, chunk_size=2, chunk_overlap=0, chunk_strategy="token")
+        self.assertGreaterEqual(len(nodes), 1)
+
+    def test_unsupported_strategy_raises(self):
+        docs = [Document(text="hello", metadata={"file_name": "a.txt"})]
+        with self.assertRaises(ValueError):
+            chunk_documents(docs, chunk_strategy="unknown")
 
 
 if __name__ == "__main__":
