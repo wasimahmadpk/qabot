@@ -1,0 +1,27 @@
+[
+  {
+    "question": "How many remote days per week are allowed?",
+    "expected_keywords": ["three"],
+    "file_name": "sample_policy.txt"
+  },
+  {
+    "question": "What are the core hours on remote days?",
+    "expected_keywords": ["10:00", "16:00"],
+    "file_name": "sample_policy.txt"
+  },
+  {
+    "question": "How should employees access systems remotely?",
+    "expected_keywords": ["vpn"],
+    "file_name": "sample_policy.txt"
+  },
+  {
+    "question": "Who approves remote work?",
+    "expected_keywords": ["manager"],
+    "file_name": "sample_policy.txt"
+  },
+  {
+    "question": "What is the capital of France?",
+    "expected_keywords": ["don't know"],
+    "file_name": "sample_policy.txt"
+  }
+]
