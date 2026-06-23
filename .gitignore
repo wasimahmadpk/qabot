@@ -20,6 +20,7 @@ build/
 .ipynb_checkpoints/
 *.pyc
 docs/thesis.pdf
+chroma_db/
 
 # Ignore Python cache files
 __pycache__/

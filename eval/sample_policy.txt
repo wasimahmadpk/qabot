@@ -1,0 +1,21 @@
+QABot Company Remote Work Policy
+
+Effective date: January 2024
+
+Overview
+All employees may work remotely up to three days per week. Remote work must be approved by the direct manager.
+
+Core hours
+Employees must be available between 10:00 and 16:00 Central European Time on remote days.
+
+Equipment
+The company provides a laptop and an external monitor for eligible remote employees. Employees are responsible for a stable internet connection.
+
+Security
+All remote access must use the company VPN. Confidential documents must not be stored on personal devices.
+
+Support
+For IT issues during remote work, contact helpdesk@qabot.example or extension 4500.
+
+Review
+This policy is reviewed annually by the People Operations team.
