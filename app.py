@@ -497,10 +497,13 @@ def render_eval_tab():
     with run_col:
         if st.button("Run evaluation", type="primary", use_container_width=True):
             with st.spinner("Evaluating…"):
+                settings = current_rag_settings()
                 report = run_evaluation(
                     query_engine,
                     query_index,
                     qa_pairs=active_pairs,
+                    index=st.session_state.get("vector_index"),
+                    top_k=settings["top_k"],
                 )
             st.session_state.eval_report = report
     with ragas_col:
@@ -596,18 +599,32 @@ def render_eval_tab():
         cols[2].metric("Retrieval", f"{summary['retrieval_hit_rate']:.0%}")
         cols[3].metric("Grounded", f"{summary['answer_grounded_rate']:.0%}")
 
+        if "recall_at_k" in summary:
+            top_k = summary.get("top_k", 3)
+            ir_cols = st.columns(3)
+            ir_cols[0].metric(f"Recall@{top_k}", f"{summary['recall_at_k']:.0%}")
+            ir_cols[1].metric("MRR", f"{summary['mrr']:.0%}")
+            ir_cols[2].metric(f"NDCG@{top_k}", f"{summary['ndcg_at_k']:.0%}")
+            st.caption(
+                f"IR metrics use pure retrieval ranking (top-{top_k}). "
+                "A chunk is relevant when it contains all expected keywords."
+            )
+
         with st.expander("Keyword results", expanded=False):
             display_rows = []
             for row in report["results"]:
-                display_rows.append(
-                    {
-                        "Question": row["question"],
-                        "ms": row["latency_ms"],
-                        "Retrieval": "✓" if row["retrieval_hit"] else "✗",
-                        "Grounded": "✓" if row["answer_grounded"] else "✗",
-                        "Preview": row["answer_preview"],
-                    }
-                )
+                entry = {
+                    "Question": row["question"],
+                    "ms": row["latency_ms"],
+                    "Retrieval": "✓" if row["retrieval_hit"] else "✗",
+                    "Grounded": "✓" if row["answer_grounded"] else "✗",
+                }
+                if "recall_at_k" in row:
+                    entry["Recall@k"] = f"{row['recall_at_k']:.0%}"
+                    entry["MRR"] = f"{row['mrr']:.0%}"
+                    entry["NDCG@k"] = f"{row['ndcg_at_k']:.0%}"
+                entry["Preview"] = row["answer_preview"]
+                display_rows.append(entry)
             st.dataframe(display_rows, use_container_width=True, hide_index=True)
 
     if ragas_report:

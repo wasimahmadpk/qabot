@@ -57,6 +57,7 @@
     "question": "What is the capital of France?",
     "expected_keywords": ["don't know"],
     "ground_truth": "I don't know.",
+    "refusal": true,
     "file_name": "sample_policy.txt"
   }
 ]
