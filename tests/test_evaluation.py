@@ -1,5 +1,8 @@
 import json
 import unittest
+from unittest.mock import patch
+
+import pandas as pd
 
 from src.evaluation import (
     answer_contains_keywords,
@@ -7,6 +10,7 @@ from src.evaluation import (
     parse_qa_pairs_json,
     retrieval_hit,
     run_evaluation,
+    run_ragas_evaluation,
 )
 
 
@@ -67,6 +71,20 @@ class EvaluationTests(unittest.TestCase):
         self.assertTrue(answer_contains_keywords("I don't know.", ["don't know"]))
         self.assertFalse(answer_contains_keywords("Paris", ["don't know"]))
 
+    def test_parse_qa_pairs_json_accepts_ground_truth(self):
+        payload = json.dumps(
+            [
+                {
+                    "question": "Example?",
+                    "expected_keywords": ["example"],
+                    "ground_truth": "An example answer.",
+                    "file_name": "doc.txt",
+                }
+            ]
+        )
+        pairs = parse_qa_pairs_json(payload)
+        self.assertEqual(pairs[0]["ground_truth"], "An example answer.")
+
     def test_run_evaluation_returns_summary(self):
         report = run_evaluation(
             FakeQueryEngine(),
@@ -87,6 +105,42 @@ class EvaluationTests(unittest.TestCase):
         self.assertEqual(report["summary"]["total"], 2)
         self.assertIn("avg_latency_ms", report["summary"])
         self.assertEqual(len(report["results"]), 2)
+
+    @patch("ragas.evaluate")
+    def test_run_ragas_evaluation_returns_metric_summary(self, mock_evaluate):
+        mock_evaluate.return_value.to_pandas.return_value = pd.DataFrame(
+            {
+                "faithfulness": [0.9, 0.8],
+                "answer_relevancy": [0.85, 0.75],
+                "context_recall": [0.95, 0.7],
+            }
+        )
+
+        report = run_ragas_evaluation(
+            FakeQueryEngine(),
+            fake_query,
+            qa_pairs=[
+                {
+                    "question": "How many remote days?",
+                    "expected_keywords": ["three"],
+                    "ground_truth": "Up to three days per week.",
+                    "file_name": "sample_policy.txt",
+                },
+                {
+                    "question": "Capital of France?",
+                    "expected_keywords": ["don't know"],
+                    "ground_truth": "I don't know.",
+                    "file_name": "sample_policy.txt",
+                },
+            ],
+        )
+
+        self.assertEqual(report["summary"]["total"], 2)
+        self.assertEqual(report["summary"]["faithfulness"], 0.85)
+        self.assertEqual(report["summary"]["answer_relevancy"], 0.8)
+        self.assertEqual(report["summary"]["context_recall"], 0.82)
+        self.assertEqual(len(report["results"]), 2)
+        mock_evaluate.assert_called_once()
 
 
 if __name__ == "__main__":

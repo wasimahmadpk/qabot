@@ -7,7 +7,12 @@ import streamlit as st
 from dotenv import load_dotenv
 from PIL import Image
 
-from src.evaluation import load_qa_pairs, parse_qa_pairs_json, run_evaluation
+from src.evaluation import (
+    load_qa_pairs,
+    parse_qa_pairs_json,
+    run_evaluation,
+    run_ragas_evaluation,
+)
 from src.indexer import create_index
 from src.loader import load_documents_from_upload
 from src.query_engine import get_query_engine, query_index
@@ -305,6 +310,7 @@ def clear_index_state():
         "chunk_stats",
         "last_result",
         "eval_report",
+        "ragas_report",
     ):
         st.session_state.pop(key, None)
 
@@ -359,6 +365,7 @@ def index_uploads(uploaded_files):
     st.session_state.chunk_stats = stats
     st.session_state.pop("last_result", None)
     st.session_state.pop("eval_report", None)
+    st.session_state.pop("ragas_report", None)
     refresh_query_engine()
 
 
@@ -486,7 +493,7 @@ def render_eval_tab():
     active_pairs = get_active_qa_pairs()
     eval_name = st.session_state.get("eval_set_name", "default")
 
-    run_col, info_col = st.columns([1, 2], vertical_alignment="center")
+    run_col, ragas_col, info_col = st.columns([1, 1, 2], vertical_alignment="center")
     with run_col:
         if st.button("Run evaluation", type="primary", use_container_width=True):
             with st.spinner("Evaluating…"):
@@ -496,8 +503,23 @@ def render_eval_tab():
                     qa_pairs=active_pairs,
                 )
             st.session_state.eval_report = report
+    with ragas_col:
+        if st.button("Run RAGAS", use_container_width=True):
+            with st.spinner("Running RAGAS (LLM judge)…"):
+                try:
+                    st.session_state.ragas_report = run_ragas_evaluation(
+                        query_engine,
+                        query_index,
+                        qa_pairs=active_pairs,
+                    )
+                except ImportError as exc:
+                    st.error(str(exc))
+                except Exception as exc:
+                    st.error(f"RAGAS evaluation failed: {exc}")
     with info_col:
-        st.caption(f"{len(active_pairs)} questions · {eval_name}")
+        st.caption(
+            f"{len(active_pairs)} questions · {eval_name} · RAGAS uses extra OpenAI calls"
+        )
 
     with st.expander("Eval set & downloads", expanded=False):
         dl1, dl2 = st.columns(2)
@@ -528,6 +550,7 @@ def render_eval_tab():
                 st.session_state.eval_qa_pairs = qa_pairs
                 st.session_state.eval_set_name = uploaded_eval.name
                 st.session_state.pop("eval_report", None)
+                st.session_state.pop("ragas_report", None)
                 st.success(f"Loaded {len(qa_pairs)} questions.")
             except (ValueError, json.JSONDecodeError) as exc:
                 st.error(str(exc))
@@ -546,6 +569,7 @@ def render_eval_tab():
                     st.session_state.eval_qa_pairs = qa_pairs
                     st.session_state.eval_set_name = "Custom eval JSON"
                     st.session_state.pop("eval_report", None)
+                    st.session_state.pop("ragas_report", None)
                     st.success(f"Applied {len(qa_pairs)} questions.")
                 except (ValueError, json.JSONDecodeError) as exc:
                     st.error(str(exc))
@@ -554,32 +578,62 @@ def render_eval_tab():
                 st.session_state.pop("eval_qa_pairs", None)
                 st.session_state.eval_set_name = "eval/qa_pairs.json (default)"
                 st.session_state.pop("eval_report", None)
+                st.session_state.pop("ragas_report", None)
                 st.success("Restored default set.")
 
     report = st.session_state.get("eval_report")
-    if not report:
+    ragas_report = st.session_state.get("ragas_report")
+
+    if not report and not ragas_report:
         return
 
-    summary = report["summary"]
-    cols = st.columns(4)
-    cols[0].metric("Questions", summary["total"])
-    cols[1].metric("Latency", f"{summary['avg_latency_ms']} ms")
-    cols[2].metric("Retrieval", f"{summary['retrieval_hit_rate']:.0%}")
-    cols[3].metric("Grounded", f"{summary['answer_grounded_rate']:.0%}")
+    if report:
+        st.markdown("##### Keyword evaluation")
+        summary = report["summary"]
+        cols = st.columns(4)
+        cols[0].metric("Questions", summary["total"])
+        cols[1].metric("Latency", f"{summary['avg_latency_ms']} ms")
+        cols[2].metric("Retrieval", f"{summary['retrieval_hit_rate']:.0%}")
+        cols[3].metric("Grounded", f"{summary['answer_grounded_rate']:.0%}")
 
-    with st.expander("Detailed results", expanded=False):
-        display_rows = []
-        for row in report["results"]:
-            display_rows.append(
-                {
+        with st.expander("Keyword results", expanded=False):
+            display_rows = []
+            for row in report["results"]:
+                display_rows.append(
+                    {
+                        "Question": row["question"],
+                        "ms": row["latency_ms"],
+                        "Retrieval": "✓" if row["retrieval_hit"] else "✗",
+                        "Grounded": "✓" if row["answer_grounded"] else "✗",
+                        "Preview": row["answer_preview"],
+                    }
+                )
+            st.dataframe(display_rows, use_container_width=True, hide_index=True)
+
+    if ragas_report:
+        st.markdown("##### RAGAS (LLM-as-judge)")
+        ragas_summary = ragas_report["summary"]
+        metric_keys = ragas_report.get("metrics", [])
+        metric_cols = st.columns(len(metric_keys) + 1)
+        metric_cols[0].metric("Latency", f"{ragas_summary['avg_latency_ms']} ms")
+        for index, key in enumerate(metric_keys, start=1):
+            label = key.replace("_", " ").title()
+            metric_cols[index].metric(label, f"{ragas_summary[key]:.0%}")
+
+        with st.expander("RAGAS results", expanded=False):
+            ragas_rows = []
+            for row in ragas_report["results"]:
+                entry = {
                     "Question": row["question"],
                     "ms": row["latency_ms"],
-                    "Retrieval": "✓" if row["retrieval_hit"] else "✗",
-                    "Grounded": "✓" if row["answer_grounded"] else "✗",
                     "Preview": row["answer_preview"],
                 }
-            )
-        st.dataframe(display_rows, use_container_width=True, hide_index=True)
+                for key in metric_keys:
+                    entry[key.replace("_", " ").title()] = (
+                        f"{row[key]:.0%}" if key in row else "—"
+                    )
+                ragas_rows.append(entry)
+            st.dataframe(ragas_rows, use_container_width=True, hide_index=True)
 
 
 init_session_defaults()

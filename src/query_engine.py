@@ -13,18 +13,21 @@ def get_query_engine(index, similarity_top_k=DEFAULT_TOP_K):
     )
 
 
-def query_index(query_engine, query_text):
+def query_index(query_engine, query_text, full_context=False):
     start = time.perf_counter()
     response = query_engine.query(query_text)
     latency_ms = (time.perf_counter() - start) * 1000
 
     sources = []
     for node in response.source_nodes or []:
+        content = node.get_content()
+        if not full_context:
+            content = content[:300]
         sources.append(
             {
                 "file_name": node.metadata.get("file_name", "unknown"),
                 "chunk_id": node.metadata.get("chunk_id", "?"),
-                "text": node.get_content()[:300],
+                "text": content,
                 "score": getattr(node, "score", None),
             }
         )

@@ -2,51 +2,61 @@
   {
     "question": "How many remote days per week are allowed?",
     "expected_keywords": ["three"],
+    "ground_truth": "All employees may work remotely up to three days per week.",
     "file_name": "sample_policy.txt"
   },
   {
     "question": "What are the core hours on remote days?",
     "expected_keywords": ["10:00", "16:00"],
+    "ground_truth": "On remote days, employees must be available between 10:00 and 16:00 Central European Time.",
     "file_name": "sample_policy.txt"
   },
   {
     "question": "How should employees access systems remotely?",
     "expected_keywords": ["vpn"],
+    "ground_truth": "All remote access must use the company VPN.",
     "file_name": "sample_policy.txt"
   },
   {
     "question": "Who approves remote work?",
     "expected_keywords": ["manager"],
+    "ground_truth": "Remote work must be approved by the direct manager.",
     "file_name": "sample_policy.txt"
   },
   {
     "question": "What is the minimum password length?",
     "expected_keywords": ["14"],
+    "ground_truth": "Passwords must be at least 14 characters.",
     "file_name": "sample_policy.txt"
   },
   {
     "question": "How quickly must security incidents be reported?",
     "expected_keywords": ["24 hours"],
+    "ground_truth": "Employees must report suspected security incidents within 24 hours of discovery.",
     "file_name": "sample_policy.txt"
   },
   {
     "question": "How many PTO days can carry over to the next year?",
     "expected_keywords": ["5 days"],
+    "ground_truth": "Up to 5 days unused PTO may carry over to the next calendar year.",
     "file_name": "sample_policy.txt"
   },
   {
     "question": "How long are customer contracts retained?",
     "expected_keywords": ["7 years"],
+    "ground_truth": "Customer contracts and billing records are retained for 7 years after contract end.",
     "file_name": "sample_policy.txt"
   },
   {
     "question": "What CI system builds documentation releases?",
     "expected_keywords": ["jenkins"],
+    "ground_truth": "Documentation updates are built and released through Jenkins CI pipelines.",
     "file_name": "sample_policy.txt"
   },
   {
     "question": "What is the capital of France?",
     "expected_keywords": ["don't know"],
+    "ground_truth": "I don't know.",
     "file_name": "sample_policy.txt"
   }
 ]

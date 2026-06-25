@@ -40,8 +40,11 @@ jsonpointer==3.0.0
 jsonschema==4.24.0
 jsonschema-specifications==2025.4.1
 langchain==0.3.25
+langchain-community==0.3.24
 langchain-core==0.3.59
 langchain-text-splitters==0.3.8
+ragas==0.3.2
+datasets==2.14.4
 langsmith==0.3.42
 llama-cloud==0.1.19
 llama-cloud-services==0.6.22
