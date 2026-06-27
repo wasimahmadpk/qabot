@@ -11,7 +11,7 @@
 | Tab | Purpose |
 |-----|---------|
 | **Ask Questions** | Upload docs, index into ChromaDB, query with citations |
-| **Evaluate RAG** | Run a golden Q&A suite and measure retrieval + grounding |
+| **Evaluate RAG** | Run a golden Q&A suite with keyword, IR, and optional RAGAS metrics |
 
 The `src/` pipeline is UI-agnostic — the same ingest, index, and query modules can back a REST API, MCP server, or help portal.
 
@@ -23,17 +23,23 @@ The `src/` pipeline is UI-agnostic — the same ingest, index, and query modules
 - **Grounded prompts** — answer only from retrieved context; cite `[file_name, chunk_id]`; say "I don't know" when evidence is missing
 - **ChromaDB persistence** — vectors survive app restarts for the same upload + config signature
 - **Upload caching** — SHA-256 signature skips re-embedding when files and chunk settings are unchanged
-- **RAG evaluation suite** — latency, retrieval hit rate, and answer grounding against golden Q&A
+- **RAG evaluation suite** — latency, retrieval hit rate, answer grounding, and IR metrics (Recall@k, MRR, NDCG@k)
+- **RAGAS evaluation** — optional LLM-as-judge metrics (faithfulness, answer relevancy, context recall)
 - **Custom eval sets** — upload, edit, or reset evaluation JSON without leaving the app
 
 ## Architecture
 
+QABot has two distinct phases. **Indexing** runs when you upload files or change chunk settings. **Querying** runs on every new question and does not re-parse, re-chunk, or re-embed your documents.
+
 ```
-Upload → parse (loader) → chunk → embed → ChromaDB
-                              ↓
-User question → retrieve top-k chunks → grounded prompt → OpenAI LLM → answer + sources
-                              ↓
-Evaluate tab → golden Q&A set → latency + retrieval + grounding metrics
+INDEXING (once per upload / chunk config)
+Upload → parse → chunk → embed documents → ChromaDB
+
+QUERY (every question)
+Question → embed query → retrieve top-k from ChromaDB → grounded prompt → LLM → answer + sources
+
+EVALUATION (on demand)
+Golden Q&A → keyword checks + IR metrics + optional RAGAS
 ```
 
 | Step | Module | Role |
@@ -46,6 +52,18 @@ Evaluate tab → golden Q&A set → latency + retrieval + grounding metrics
 | Query | `src/query_engine.py` | Retrieve, answer, return latency and source chunks |
 | Eval | `src/evaluation.py` | Golden Q&A metrics for retrieval and answer quality |
 | Cache | `src/upload_cache.py` | SHA-256 upload signature so unchanged files skip rebuild |
+
+### Models
+
+QABot uses LlamaIndex and RAGAS defaults — no model names are hard-coded in the app.
+
+| Stage | Model | Provider |
+|-------|-------|----------|
+| Document embeddings | `text-embedding-ada-002` | OpenAI (LlamaIndex default) |
+| Answer generation | `gpt-3.5-turbo` | OpenAI (LlamaIndex default) |
+| RAGAS judge (optional) | `gpt-4o-mini` | OpenAI (RAGAS default) |
+
+At query time, only the **user's question** is embedded. Stored document vectors are read from ChromaDB.
 
 ## Quick start
 
@@ -83,11 +101,13 @@ Open the URL shown in the terminal (usually `http://localhost:8501`).
 2. Wait for the indexing success message (document and chunk counts).
 3. Type a question or pick a sample prompt — review the answer, latency, and retrieved sources.
 
+Each new question reuses the stored index. Documents are not re-embedded unless you upload new files or change chunk settings.
+
 ### 5. Run evaluation (optional)
 
 1. Upload `eval/sample_policy.txt` (or your own docs) on the **Ask Questions** tab.
 2. Open the **Evaluate RAG** tab.
-3. Click **Run evaluation suite** to score retrieval hit rate and answer grounding.
+3. Click **Run evaluation** for keyword and IR metrics, or **Run RAGAS** for LLM-as-judge scoring.
 
 Download buttons on the eval tab provide the sample handbook and default `qa_pairs.json`.
 
@@ -98,15 +118,33 @@ Engineer controls live in the sidebar under **RAG settings (engineer)**:
 | Setting | Default | Notes |
 |---------|---------|-------|
 | Chunk strategy | `sentence` | `sentence` respects boundaries; `token` uses fixed token windows |
-| Chunk size | 512 | Triggers re-indexing when changed |
-| Chunk overlap | 128 | Triggers re-indexing when changed |
-| Top-k | 3 | Retrieval depth; applies immediately without re-indexing |
+| Chunk size | 512 | Target tokens per chunk; triggers re-indexing when changed |
+| Chunk overlap | 128 | Shared tokens between neighboring chunks; triggers re-indexing when changed |
+| Top-k | 3 | Chunks retrieved per question; applies immediately without re-indexing |
 
 Changing chunk settings creates a new ChromaDB collection keyed by upload signature + config. Use **Reset RAG defaults** to restore defaults.
 
+## Chunking
+
+Chunking splits each document into smaller, overlapping segments so retrieval can find focused passages instead of whole files.
+
+| Strategy | Splitter | Behavior |
+|----------|----------|----------|
+| `sentence` (default) | LlamaIndex `SentenceSplitter` | Splits at sentence boundaries up to the chunk size |
+| `token` | LlamaIndex `TokenTextSplitter` | Fixed token windows; may cut mid-sentence |
+
+Each chunk receives metadata:
+
+- `file_name` — source document
+- `chunk_id` — sequential ID within that file (used in citations)
+
+Short documents that fit within the chunk size stay as a single chunk. Overlap (default 128 tokens) reduces the risk of losing context at chunk boundaries.
+
 ## Evaluation
 
-The eval suite runs golden questions from `eval/qa_pairs.json` (or a custom set) and reports:
+The eval suite runs golden questions from `eval/qa_pairs.json` (or a custom set).
+
+### End-to-end metrics
 
 | Metric | Meaning |
 |--------|---------|
@@ -114,20 +152,52 @@ The eval suite runs golden questions from `eval/qa_pairs.json` (or a custom set)
 | **Grounded answers** | Did the answer include expected facts (or "I don't know" for out-of-scope items)? |
 | **Avg latency** | End-to-end query time in milliseconds |
 
+### IR metrics (pure retrieval ranking)
+
+Computed from ranked top-k retrieval **without** running the LLM. All three metrics share the same `top_k` cutoff from sidebar settings.
+
+| Metric | Meaning |
+|--------|---------|
+| **Recall@k** | Fraction of relevant chunks found in the top-k results |
+| **MRR** | Reciprocal rank of the first relevant chunk in top-k (0 if none found) |
+| **NDCG@k** | Normalized ranking quality in the top-k list |
+
+When comparing across different retrieval depths, you can write **MRR@k** alongside Recall@k and NDCG@k for clarity. In this app, all three already use the same `top_k`.
+
+### RAGAS metrics (optional)
+
+Click **Run RAGAS** on the Evaluate tab for LLM-as-judge scoring. Requires extra OpenAI API calls.
+
+| Metric | Meaning |
+|--------|---------|
+| **Faithfulness** | Is the answer supported by retrieved context? |
+| **Answer relevancy** | Does the answer address the question? |
+| **Context recall** | Does retrieval cover the reference answer? (only when `ground_truth` is set) |
+
+### Eval JSON format
+
 Each eval item supports:
 
 ```json
 {
   "question": "How many PTO days can carry over to the next year?",
   "expected_keywords": ["5 days"],
-  "file_name": "sample_policy.txt"
+  "file_name": "sample_policy.txt",
+  "ground_truth": "Up to 5 days of PTO can carry over.",
+  "relevant_chunk_ids": [12],
+  "refusal": false
 }
 ```
 
-- `expected_keywords` — facts the retrieval and answer should contain
-- `file_name` — optional; restrict retrieval checks to a specific source file
+| Field | Purpose |
+|-------|---------|
+| `expected_keywords` | Facts retrieval and answer checks should contain |
+| `file_name` | Optional; restrict checks to a specific source file |
+| `ground_truth` | Optional; enables RAGAS context recall |
+| `relevant_chunk_ids` | Optional; precise IR metric grading by chunk ID |
+| `refusal` | Optional; expects "I don't know" for out-of-scope questions |
 
-Upload custom JSON, edit in the text area, or reset to the default set from the **Manage evaluation set (engineer)** panel.
+Upload custom JSON, edit in the text area, or reset to the default set from the **Eval set & downloads** panel.
 
 ## Design decisions
 
@@ -137,7 +207,9 @@ Upload custom JSON, edit in the text area, or reset to the default set from the 
 
 **ChromaDB** — persistent vector storage keyed by upload signature and chunk config. Restarting Streamlit does not require re-embedding the same files with the same settings.
 
-**Evaluation** — keyword-based checks are lightweight and deterministic. They are a starting point for regression testing; swap in LLM-as-judge or RAGAS-style metrics for production workloads.
+**Separate indexing and query paths** — document embeddings are stored once; each question only embeds the query, retrieves from ChromaDB, and calls the LLM.
+
+**Evaluation** — keyword checks and IR metrics are lightweight and deterministic. RAGAS adds LLM-as-judge scoring for deeper quality signals. Together they support regression testing without manual review on every change.
 
 ## Project structure
 
@@ -176,7 +248,7 @@ python -m unittest discover -s tests -v
 ## Requirements
 
 - Python **3.10+**
-- **OpenAI API key** (embeddings + LLM)
+- **OpenAI API key** (embeddings + LLM + optional RAGAS judging)
 - Disk space for ChromaDB and Python ML dependencies
 
 ## Limitations
@@ -184,8 +256,9 @@ python -m unittest discover -s tests -v
 - **No auth** — intended for local or trusted use only
 - **PDF quality** — text extraction depends on PDF structure; scanned images need OCR (not included)
 - **OpenAI by default** — swap embedding/LLM settings for local models (e.g. Ollama) in a follow-up
-- **Eval keywords** — simple substring checks; not a substitute for human or LLM-based grading at scale
-- **Cost** — indexing and queries use OpenAI API credits
+- **Dense retrieval only** — no BM25, hybrid search, or reranking
+- **Eval keywords** — simple substring checks; RAGAS helps but neither replaces human grading at scale
+- **Cost** — indexing, queries, and RAGAS evaluation use OpenAI API credits
 
 ## Dev container
 
