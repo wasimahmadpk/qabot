@@ -1,19 +1,61 @@
-# QABot
+<p align="center">
+  <img src="assets/logo.png" alt="QABot logo" width="120" />
+</p>
 
-**QABot** is a Streamlit app for **retrieval-augmented generation (RAG)** over your own documents. Upload PDF, TXT, or DOCX files, ask questions in natural language, and get **grounded answers with source citations**. Vectors persist in **ChromaDB**; embeddings and answers use **OpenAI** via **LlamaIndex**.
+<h1 align="center">QABot</h1>
 
-![Python](https://img.shields.io/badge/python-3.10%2B-blue)
-![Streamlit](https://img.shields.io/badge/streamlit-1.45-red)
-![LlamaIndex](https://img.shields.io/badge/llamaindex-0.12-green)
+<p align="center">
+  <strong>Ask questions over your documents. Get grounded answers with citations.</strong><br />
+  A Streamlit RAG app with tunable chunking, persistent ChromaDB storage, and built-in evaluation.
+</p>
 
-## What it does
+<p align="center">
+  <a href="https://github.com/wasimahmadpk/qabot/stargazers"><img src="https://img.shields.io/github/stars/wasimahmadpk/qabot?style=social" alt="GitHub stars" /></a>
+  <img src="https://img.shields.io/badge/python-3.10%2B-blue" alt="Python 3.10+" />
+  <img src="https://img.shields.io/badge/streamlit-1.45-red" alt="Streamlit" />
+  <img src="https://img.shields.io/badge/llamaindex-0.12-green" alt="LlamaIndex" />
+  <img src="https://img.shields.io/badge/chroma-1.0-orange" alt="ChromaDB" />
+  <img src="https://img.shields.io/badge/openai-embeddings%20%2B%20LLM-lightgrey" alt="OpenAI" />
+</p>
+
+<p align="center">
+  <a href="https://github.com/codespaces/new?hide_repo_select=true&ref=main&repo=wasimahmadpk/qabot"><img src="https://github.com/codespaces/badge.svg" alt="Open in GitHub Codespaces" /></a>
+</p>
+
+---
+
+## Table of contents
+
+- [Overview](#overview)
+- [Features](#features)
+- [Architecture](#architecture)
+- [Quick start](#quick-start)
+- [Demo walkthrough](#demo-walkthrough)
+- [RAG settings](#rag-settings)
+- [Evaluation](#evaluation)
+- [Programmatic usage](#programmatic-usage)
+- [Project structure](#project-structure)
+- [Tests](#tests)
+- [Troubleshooting](#troubleshooting)
+- [Limitations](#limitations)
+- [Contributing](#contributing)
+
+## Overview
+
+**QABot** is a [retrieval-augmented generation (RAG)](https://www.llamaindex.ai/blog/retrieval-augmented-generation-rag-from-theory-to-langchain-implementation-4e182cc5468c) app built with Streamlit. Upload PDF, TXT, or DOCX files, ask questions in natural language, and receive **grounded answers with inline source citations**. Vectors persist in **ChromaDB**; embeddings and answers use **OpenAI** via **LlamaIndex**.
 
 | Tab | Purpose |
 |-----|---------|
 | **Ask Questions** | Upload docs, index into ChromaDB, query with citations |
 | **Evaluate RAG** | Run a golden Q&A suite with keyword, IR, and optional RAGAS metrics |
 
-The `src/` pipeline is UI-agnostic — the same ingest, index, and query modules can back a REST API, MCP server, or help portal.
+The `src/` pipeline is **UI-agnostic** — the same ingest, index, and query modules can back a REST API, MCP server, or internal help portal.
+
+### Use cases
+
+- **Policy & handbook Q&A** — employees ask HR or IT questions against internal docs
+- **RAG prototyping** — tune chunk size, overlap, and top-k without writing boilerplate
+- **Regression testing** — measure retrieval and answer quality before shipping prompt or config changes
 
 ## Features
 
@@ -29,17 +71,30 @@ The `src/` pipeline is UI-agnostic — the same ingest, index, and query modules
 
 ## Architecture
 
-QABot has two distinct phases. **Indexing** runs when you upload files or change chunk settings. **Querying** runs on every new question and does not re-parse, re-chunk, or re-embed your documents.
+QABot has three distinct phases. **Indexing** runs when you upload files or change chunk settings. **Querying** runs on every new question and does not re-parse, re-chunk, or re-embed your documents. **Evaluation** runs on demand against a golden Q&A set.
 
-```
-INDEXING (once per upload / chunk config)
-Upload → parse → chunk → embed documents → ChromaDB
+```mermaid
+flowchart LR
+    subgraph Indexing["Indexing (once per upload / config)"]
+        U[Upload] --> P[Parse PDF / TXT / DOCX]
+        P --> C[Chunk + metadata]
+        C --> E[Embed documents]
+        E --> DB[(ChromaDB)]
+    end
 
-QUERY (every question)
-Question → embed query → retrieve top-k from ChromaDB → grounded prompt → LLM → answer + sources
+    subgraph Query["Query (every question)"]
+        Q[Question] --> QE[Embed query]
+        QE --> R[Retrieve top-k]
+        R --> DB
+        DB --> L[Grounded LLM prompt]
+        L --> A[Answer + citations]
+    end
 
-EVALUATION (on demand)
-Golden Q&A → keyword checks + IR metrics + optional RAGAS
+    subgraph Eval["Evaluation (on demand)"]
+        G[Golden Q&A] --> K[Keyword checks]
+        G --> IR[IR metrics]
+        G --> RG[Optional RAGAS]
+    end
 ```
 
 | Step | Module | Role |
@@ -79,6 +134,8 @@ source venv/bin/activate          # Windows: venv\Scripts\activate
 pip install -r requirements.txt
 ```
 
+> **Tip:** Prefer zero local setup? Click **Open in GitHub Codespaces** above, add your `OPENAI_API_KEY` as a Codespaces secret, and the dev container installs dependencies and starts Streamlit automatically.
+
 ### 2. Configure OpenAI
 
 Create a `.env` file in the project root:
@@ -95,23 +152,19 @@ streamlit run app.py
 
 Open the URL shown in the terminal (usually `http://localhost:8501`).
 
-### 4. Ask questions
+## Demo walkthrough
 
-1. Upload one or more documents on the **Ask Questions** tab.
-2. Wait for the indexing success message (document and chunk counts).
-3. Type a question or pick a sample prompt — review the answer, latency, and retrieved sources.
+Try the built-in sample in under two minutes:
+
+1. **Start the app** — `streamlit run app.py`
+2. **Upload** — on the **Ask Questions** tab, upload `eval/sample_policy.txt` (download it from the **Evaluate RAG** tab if needed)
+3. **Wait for indexing** — confirm the success message with document and chunk counts
+4. **Ask** — try a sample prompt such as *"How many remote days per week are allowed?"* or *"What is the capital of France?"* (the second should return "I don't know")
+5. **Evaluate** — switch to **Evaluate RAG**, click **Run evaluation** for keyword and IR metrics, or **Run RAGAS** for LLM-as-judge scoring
 
 Each new question reuses the stored index. Documents are not re-embedded unless you upload new files or change chunk settings.
 
-### 5. Run evaluation (optional)
-
-1. Upload `eval/sample_policy.txt` (or your own docs) on the **Ask Questions** tab.
-2. Open the **Evaluate RAG** tab.
-3. Click **Run evaluation** for keyword and IR metrics, or **Run RAGAS** for LLM-as-judge scoring.
-
-Download buttons on the eval tab provide the sample handbook and default `qa_pairs.json`.
-
-## RAG settings (sidebar)
+## RAG settings
 
 Engineer controls live in the sidebar under **RAG settings (engineer)**:
 
@@ -124,9 +177,7 @@ Engineer controls live in the sidebar under **RAG settings (engineer)**:
 
 Changing chunk settings creates a new ChromaDB collection keyed by upload signature + config. Use **Reset RAG defaults** to restore defaults.
 
-## Chunking
-
-Chunking splits each document into smaller, overlapping segments so retrieval can find focused passages instead of whole files.
+### Chunking strategies
 
 | Strategy | Splitter | Behavior |
 |----------|----------|----------|
@@ -162,8 +213,6 @@ Computed from ranked top-k retrieval **without** running the LLM. All three metr
 | **MRR** | Reciprocal rank of the first relevant chunk in top-k (0 if none found) |
 | **NDCG@k** | Normalized ranking quality in the top-k list |
 
-When comparing across different retrieval depths, you can write **MRR@k** alongside Recall@k and NDCG@k for clarity. In this app, all three already use the same `top_k`.
-
 ### RAGAS metrics (optional)
 
 Click **Run RAGAS** on the Evaluate tab for LLM-as-judge scoring. Requires extra OpenAI API calls.
@@ -175,8 +224,6 @@ Click **Run RAGAS** on the Evaluate tab for LLM-as-judge scoring. Requires extra
 | **Context recall** | Does retrieval cover the reference answer? (only when `ground_truth` is set) |
 
 ### Eval JSON format
-
-Each eval item supports:
 
 ```json
 {
@@ -199,17 +246,33 @@ Each eval item supports:
 
 Upload custom JSON, edit in the text area, or reset to the default set from the **Eval set & downloads** panel.
 
-## Design decisions
+## Programmatic usage
 
-**Chunking (512 / 128)** — balances recall (enough context per chunk) with precision (smaller chunks reduce irrelevant retrieval noise). Overlap avoids cutting sentences at boundaries.
+The Streamlit UI is a thin wrapper over `src/`. You can drive the same pipeline from a script or API:
 
-**Grounded prompts** — the LLM must answer only from retrieved context and refuse when evidence is missing. This directly targets hallucination reduction.
+```python
+from dotenv import load_dotenv
+from llama_index.core import Document
 
-**ChromaDB** — persistent vector storage keyed by upload signature and chunk config. Restarting Streamlit does not require re-embedding the same files with the same settings.
+from src.indexer import create_index
+from src.query_engine import get_query_engine, query_index
+from src.rag_config import default_rag_settings, index_config_key
 
-**Separate indexing and query paths** — document embeddings are stored once; each question only embeds the query, retrieves from ChromaDB, and calls the LLM.
+load_dotenv()
 
-**Evaluation** — keyword checks and IR metrics are lightweight and deterministic. RAGAS adds LLM-as-judge scoring for deeper quality signals. Together they support regression testing without manual review on every change.
+docs = [Document(text="Remote work is allowed up to three days per week.", metadata={"file_name": "policy.txt"})]
+settings = default_rag_settings()
+index_key = index_config_key("demo-upload", settings)
+
+index, stats = create_index(docs, index_key, **{k: settings[k] for k in ("chunk_size", "chunk_overlap", "chunk_strategy")})
+engine = get_query_engine(index, similarity_top_k=settings["top_k"])
+result = query_index(engine, "How many remote days are allowed?")
+
+print(result["answer"])
+print(result["sources"])  # file_name, chunk_id, text, score
+```
+
+For retrieval-only benchmarks (no LLM cost), use `retrieve_ranked()` from `src/query_engine.py`.
 
 ## Project structure
 
@@ -245,11 +308,30 @@ qabot/
 python -m unittest discover -s tests -v
 ```
 
-## Requirements
+Unit tests cover chunking, upload cache signatures, RAG config keys, and evaluation logic — no OpenAI API key required.
 
-- Python **3.10+**
-- **OpenAI API key** (embeddings + LLM + optional RAGAS judging)
-- Disk space for ChromaDB and Python ML dependencies
+## Troubleshooting
+
+| Issue | Fix |
+|-------|-----|
+| `OPENAI_API_KEY` errors | Add the key to `.env` in the project root and restart Streamlit |
+| Index rebuilds on every rerun | Ensure you uploaded files in the current session; the app caches by upload signature + chunk config |
+| Empty or garbled PDF text | PDFs must contain selectable text; scanned images need OCR (not included) |
+| Slow first query | Initial OpenAI and ChromaDB warm-up is normal; subsequent queries reuse the stored index |
+| RAGAS fails or times out | RAGAS makes extra LLM calls per question; check API quota and network access |
+| `Metadata length is longer than chunk size` | Increase chunk size in sidebar settings — metadata counts toward the token budget |
+
+## Design decisions
+
+**Chunking (512 / 128)** — balances recall (enough context per chunk) with precision (smaller chunks reduce irrelevant retrieval noise). Overlap avoids cutting sentences at boundaries.
+
+**Grounded prompts** — the LLM must answer only from retrieved context and refuse when evidence is missing. This directly targets hallucination reduction.
+
+**ChromaDB** — persistent vector storage keyed by upload signature and chunk config. Restarting Streamlit does not require re-embedding the same files with the same settings.
+
+**Separate indexing and query paths** — document embeddings are stored once; each question only embeds the query, retrieves from ChromaDB, and calls the LLM.
+
+**Evaluation** — keyword checks and IR metrics are lightweight and deterministic. RAGAS adds LLM-as-judge scoring for deeper quality signals. Together they support regression testing without manual review on every change.
 
 ## Limitations
 
@@ -262,7 +344,7 @@ python -m unittest discover -s tests -v
 
 ## Dev container
 
-A `.devcontainer/` config is included for VS Code and GitHub Codespaces.
+A `.devcontainer/` config is included for VS Code and GitHub Codespaces. On attach, it installs dependencies from `requirements.txt` and starts Streamlit on port 8501.
 
 ## Contributing
 
