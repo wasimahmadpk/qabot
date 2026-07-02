@@ -10,7 +10,7 @@
 </p>
 
 <p align="center">
-  <a href="https://github.com/wasimahmadpk/qabot/stargazers"><img src="https://img.shields.io/github/stars/wasimahmadpk/qabot?style=social" alt="GitHub stars" /></a>
+  <a href="https://github.com/wasimahmadpk/qabot"><img src="https://img.shields.io/github/stars/wasimahmadpk/qabot?style=social" alt="GitHub stars" /></a>
   <img src="https://img.shields.io/badge/python-3.10%2B-blue" alt="Python 3.10+" />
   <img src="https://img.shields.io/badge/streamlit-1.45-red" alt="Streamlit" />
   <img src="https://img.shields.io/badge/llamaindex-0.12-green" alt="LlamaIndex" />
@@ -28,10 +28,13 @@
 ## Table of contents
 
 - [Overview](#overview)
+- [Tech stack](#tech-stack)
 - [Features](#features)
 - [Architecture](#architecture)
+- [Prerequisites](#prerequisites)
 - [Quick start](#quick-start)
 - [Demo walkthrough](#demo-walkthrough)
+- [Example output](#example-output)
 - [RAG settings](#rag-settings)
 - [Evaluation](#evaluation)
 - [OpenAI models](#openai-models)
@@ -39,7 +42,9 @@
 - [Project structure](#project-structure)
 - [Tests](#tests)
 - [Troubleshooting](#troubleshooting)
+- [Design decisions](#design-decisions)
 - [Limitations](#limitations)
+- [Dev container](#dev-container)
 - [Contributing](#contributing)
 
 ## Overview
@@ -58,6 +63,17 @@ The `src/` pipeline is **UI-agnostic** — the same ingest, index, and query mod
 - **Policy & handbook Q&A** — employees ask HR or IT questions against internal docs
 - **RAG prototyping** — tune chunk size, overlap, and top-k without writing boilerplate
 - **Regression testing** — measure retrieval ranking and answer quality before shipping prompt or config changes
+
+## Tech stack
+
+| Layer | Technology |
+|-------|------------|
+| UI | [Streamlit](https://streamlit.io/) |
+| RAG framework | [LlamaIndex](https://www.llamaindex.ai/) |
+| Vector store | [ChromaDB](https://www.trychroma.com/) (persistent, local) |
+| Embeddings & LLM | [OpenAI](https://platform.openai.com/) (LlamaIndex defaults) |
+| Document parsing | PyMuPDF (PDF), python-docx (DOCX), plain text |
+| Evaluation | Keyword checks, IR metrics, optional [RAGAS](https://docs.ragas.io/) |
 
 ## Features
 
@@ -111,6 +127,12 @@ flowchart LR
 
 At query time, only the **user's question** is embedded. Stored document vectors are read from ChromaDB.
 
+## Prerequisites
+
+- **Python 3.10+** (3.11 recommended; matches the dev container)
+- **OpenAI API key** with access to embeddings and chat completions
+- **~2 GB disk** for Python dependencies (includes PyTorch and sentence-transformers pulled in by RAGAS)
+
 ## Quick start
 
 ### 1. Clone and install
@@ -135,6 +157,8 @@ Create a `.env` file in the project root:
 OPENAI_API_KEY=sk-your-key-here
 ```
 
+The sidebar shows **API connected** (green) when the key is loaded. No other environment variables are required.
+
 ### 3. Run the app
 
 ```bash
@@ -149,22 +173,35 @@ Try the built-in sample in under two minutes:
 
 1. **Start the app** — `streamlit run app.py`
 2. **Upload** — on the **Ask** tab, upload `eval/sample_policy.txt` (download it from the **Evaluate** tab if needed)
-3. **Wait for indexing** — confirm the success message with document and chunk counts
-4. **Ask** — try a sample prompt such as *"How many remote days per week are allowed?"* or *"What is the capital of France?"* (the second should return "I don't know")
-5. **Evaluate** — switch to **Evaluate**, click **Run evaluation** for keyword + IR metrics, or **Run RAGAS** for LLM-as-judge scoring
+3. **Wait for indexing** — the sidebar shows doc and chunk counts when ready
+4. **Ask** — pick a sample question from the dropdown or type your own, e.g. *"How many remote days per week are allowed?"*
+5. **Test refusal** — ask *"What is the capital of France?"* — the model should reply *"I don't know"* (no evidence in the handbook)
+6. **Evaluate** — switch to **Evaluate**, click **Run evaluation** for keyword + IR metrics, or **Run RAGAS** for LLM-as-judge scoring
 
 Each new question reuses the stored index. Documents are not re-embedded unless you upload new files or change chunk settings.
+
+## Example output
+
+After indexing `eval/sample_policy.txt` and asking *"How many remote days per week are allowed?"*:
+
+```
+All employees may work remotely up to three days per week [sample_policy.txt, 2].
+
+847 ms · 3 sources
+```
+
+Expand **Sources** to inspect the retrieved chunks — each shows `file_name`, `chunk_id`, similarity score, and the raw chunk text. This makes it easy to verify that answers are grounded in your documents rather than model memory.
 
 ## RAG settings
 
 Controls live in the sidebar under **Advanced settings** (collapsed by default):
 
-| Setting | Default | Notes |
-|---------|---------|-------|
-| Chunk strategy | `sentence` | `sentence` respects boundaries; `token` uses fixed token windows |
-| Chunk size | 512 | Target tokens per chunk; triggers re-indexing when changed |
-| Chunk overlap | 128 | Shared tokens between neighboring chunks; triggers re-indexing when changed |
-| Top-k | 3 | Chunks retrieved per question; applies immediately without re-indexing |
+| Setting | Default | Range | Notes |
+|---------|---------|-------|-------|
+| Chunk strategy | `sentence` | `sentence`, `token` | `sentence` respects boundaries; `token` uses fixed token windows |
+| Chunk size | 512 | 128–4096 | Target tokens per chunk; triggers re-indexing when changed |
+| Chunk overlap | 128 | 0–1024 | Shared tokens between neighboring chunks; triggers re-indexing when changed |
+| Top-k | 3 | 1–15 | Chunks retrieved per question; applies immediately without re-indexing |
 
 Changing chunk settings creates a new ChromaDB collection keyed by upload signature + config. Use **Reset defaults** to restore defaults.
 
@@ -265,6 +302,17 @@ QABot uses LlamaIndex and RAGAS defaults — no model names are hard-coded in th
 
 To swap models, configure LlamaIndex `Settings` in code (not yet exposed in the UI).
 
+### Approximate API cost
+
+| Action | Typical cost |
+|--------|--------------|
+| Index one handbook (~50 chunks) | A few cents (embedding only) |
+| Single question | ~1 embedding + 1 chat completion |
+| Keyword eval (10 questions) | ~10 chat completions |
+| RAGAS eval (10 questions) | Multiple judge calls per question |
+
+Exact cost depends on document size, chunk settings, and OpenAI pricing.
+
 ## Programmatic usage
 
 The Streamlit UI is a thin wrapper over `src/`. You can drive the same pipeline from a script or API:
@@ -313,6 +361,7 @@ print(report["summary"])  # retrieval_hit_rate, recall_at_k, mrr, ndcg_at_k, ...
 qabot/
 ├── app.py                 # Streamlit UI (Ask + Evaluate tabs)
 ├── assets/logo.png
+├── .devcontainer/         # VS Code / GitHub Codespaces config
 ├── eval/
 │   ├── qa_pairs.json      # Golden Q&A for evaluation demo
 │   └── sample_policy.txt  # Enterprise-scale sample handbook
@@ -348,12 +397,12 @@ Unit tests cover chunking, upload cache signatures, RAG config keys, and evaluat
 | Issue | Fix |
 |-------|-----|
 | `OPENAI_API_KEY` errors | Add the key to `.env` in the project root and restart Streamlit |
+| Sidebar shows "Missing API key" | Confirm `.env` is in the project root (same directory as `app.py`) |
 | Index rebuilds on every rerun | Ensure you uploaded files in the current session; the app caches by upload signature + chunk config |
 | Empty or garbled PDF text | PDFs must contain selectable text; scanned images need OCR (not included) |
 | Slow first query | Initial OpenAI and ChromaDB warm-up is normal; subsequent queries reuse the stored index |
 | RAGAS fails or times out | RAGAS makes extra LLM calls per question; check API quota and network access |
 | `Metadata length is longer than chunk size` | Increase chunk size in sidebar settings — metadata counts toward the token budget |
-| High grounded but low retrieval (old versions) | Upgrade to latest — grounded now requires retrieval hit unless `refusal: true` |
 
 ## Design decisions
 
@@ -381,6 +430,8 @@ Unit tests cover chunking, upload cache signatures, RAG config keys, and evaluat
 ## Dev container
 
 A `.devcontainer/` config is included for VS Code and GitHub Codespaces. On attach, it installs dependencies from `requirements.txt` and starts Streamlit on port 8501.
+
+To use locally in VS Code: **Dev Containers: Reopen in Container**, then add `OPENAI_API_KEY` to your environment or a `.env` file inside the container workspace.
 
 ## Contributing
 
