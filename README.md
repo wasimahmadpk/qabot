@@ -6,7 +6,7 @@
 
 <p align="center">
   <strong>Ask questions over your documents. Get grounded answers with citations.</strong><br />
-  A Streamlit RAG demo with tunable chunking, persistent ChromaDB storage, and multi-layer evaluation.
+  A production-minded Streamlit RAG demo — tunable chunking, persistent ChromaDB, and three-layer evaluation.
 </p>
 
 <p align="center">
@@ -25,14 +25,37 @@
 
 ---
 
+**QABot** is a [retrieval-augmented generation (RAG)](https://docs.llamaindex.ai/en/stable/understanding/rag/) app for teams who want more than a hello-world tutorial. Upload PDF, TXT, or DOCX files, ask questions in natural language, and get **grounded answers with inline `[file_name, chunk_id]` citations**. Vectors persist in **ChromaDB**; embeddings and answers use **OpenAI** via **LlamaIndex**.
+
+| | |
+|---|---|
+| **Ask tab** | Upload docs, index into ChromaDB, query with citations |
+| **Evaluate tab** | Score retrieval and answer quality with keyword, IR, and optional RAGAS metrics |
+| **Built-in demo** | 500-line sample handbook + 10 golden Q&A pairs (including a refusal test) |
+| **Headless-ready** | `src/` pipeline is UI-agnostic — same modules can back an API or MCP server |
+
+### Quick start
+
+```bash
+git clone https://github.com/wasimahmadpk/qabot.git && cd qabot
+python -m venv venv && source venv/bin/activate
+pip install -r requirements.txt
+echo "OPENAI_API_KEY=sk-your-key-here" > .env
+streamlit run app.py
+```
+
+Open `http://localhost:8501`, upload `eval/sample_policy.txt` (downloadable from the **Evaluate** tab), and ask *"How many remote days per week are allowed?"*
+
+> **No local setup?** Click **Open in GitHub Codespaces** above, add `OPENAI_API_KEY` as a Codespaces secret, and the dev container installs dependencies and starts Streamlit automatically.
+
 ## Table of contents
 
-- [Overview](#overview)
+- [Why QABot?](#why-qabot)
 - [Tech stack](#tech-stack)
 - [Features](#features)
 - [Architecture](#architecture)
 - [Prerequisites](#prerequisites)
-- [Quick start](#quick-start)
+- [Installation](#installation)
 - [Demo walkthrough](#demo-walkthrough)
 - [Example output](#example-output)
 - [RAG settings](#rag-settings)
@@ -41,22 +64,24 @@
 - [Programmatic usage](#programmatic-usage)
 - [Project structure](#project-structure)
 - [Tests](#tests)
+- [FAQ](#faq)
 - [Troubleshooting](#troubleshooting)
 - [Design decisions](#design-decisions)
-- [Limitations](#limitations)
+- [Limitations & roadmap](#limitations--roadmap)
 - [Dev container](#dev-container)
 - [Contributing](#contributing)
 
-## Overview
+## Why QABot?
 
-**QABot** is a [retrieval-augmented generation (RAG)](https://docs.llamaindex.ai/en/stable/understanding/rag/) app built with Streamlit. Upload PDF, TXT, or DOCX files, ask questions in natural language, and receive **grounded answers with inline source citations**. Vectors persist in **ChromaDB**; embeddings and answers use **OpenAI** via **LlamaIndex**.
+Most RAG tutorials stop at "ask a question, get an answer." QABot is built for **experimentation and regression testing**:
 
-| Tab | Purpose |
-|-----|---------|
-| **Ask** | Upload docs, index into ChromaDB, query with citations |
-| **Evaluate** | Score retrieval and answer quality with keyword, IR, and optional RAGAS metrics |
-
-The `src/` pipeline is **UI-agnostic** — the same ingest, index, and query modules can back a REST API, MCP server, or internal help portal.
+| Typical RAG demo | QABot |
+|------------------|-------|
+| Re-indexes on every restart | **Persistent ChromaDB** keyed by upload signature + chunk config |
+| Fixed chunk size | **Tunable** strategy, size, overlap, and top-k from the sidebar |
+| Answers with no sources | **Grounded prompts** with `[file_name, chunk_id]` citations and explicit refusal |
+| No way to measure quality | **Three eval layers** — keyword checks, IR metrics (Recall@k, MRR, NDCG@k), optional RAGAS |
+| UI tightly coupled to logic | **`src/` modules** usable from scripts, APIs, or other frontends |
 
 ### Use cases
 
@@ -85,6 +110,7 @@ The `src/` pipeline is **UI-agnostic** — the same ingest, index, and query mod
 - **Upload caching** — SHA-256 signature skips re-embedding when files and chunk settings are unchanged
 - **Three-layer evaluation** — fast keyword checks, IR metrics (Recall@k, MRR, NDCG@k), and optional RAGAS LLM-as-judge scoring
 - **Custom eval sets** — upload, edit, or reset evaluation JSON without leaving the app
+- **Sample questions** — dropdown on the Ask tab for quick smoke tests
 
 ## Architecture
 
@@ -133,7 +159,7 @@ At query time, only the **user's question** is embedded. Stored document vectors
 - **OpenAI API key** with access to embeddings and chat completions
 - **~2 GB disk** for Python dependencies (includes PyTorch and sentence-transformers pulled in by RAGAS)
 
-## Quick start
+## Installation
 
 ### 1. Clone and install
 
@@ -147,8 +173,6 @@ source venv/bin/activate          # Windows: venv\Scripts\activate
 pip install -r requirements.txt
 ```
 
-> **Tip:** Prefer zero local setup? Click **Open in GitHub Codespaces** above, add your `OPENAI_API_KEY` as a Codespaces secret, and the dev container installs dependencies and starts Streamlit automatically.
-
 ### 2. Configure OpenAI
 
 Create a `.env` file in the project root:
@@ -158,6 +182,12 @@ OPENAI_API_KEY=sk-your-key-here
 ```
 
 The sidebar shows **API connected** (green) when the key is loaded. No other environment variables are required.
+
+| Variable | Required | Purpose |
+|----------|----------|---------|
+| `OPENAI_API_KEY` | Yes | Embeddings, answer generation, and optional RAGAS judge calls |
+
+> **Security:** Never commit `.env` or API keys. The `.env` file is gitignored by default.
 
 ### 3. Run the app
 
@@ -172,7 +202,7 @@ Open the URL shown in the terminal (usually `http://localhost:8501`).
 Try the built-in sample in under two minutes:
 
 1. **Start the app** — `streamlit run app.py`
-2. **Upload** — on the **Ask** tab, upload `eval/sample_policy.txt` (download it from the **Evaluate** tab if needed)
+2. **Upload** — on the **Ask** tab, upload `eval/sample_policy.txt` (or download it from the **Evaluate** tab → **Eval set & downloads**)
 3. **Wait for indexing** — the sidebar shows doc and chunk counts when ready
 4. **Ask** — pick a sample question from the dropdown or type your own, e.g. *"How many remote days per week are allowed?"*
 5. **Test refusal** — ask *"What is the capital of France?"* — the model should reply *"I don't know"* (no evidence in the handbook)
@@ -221,7 +251,7 @@ Short documents that fit within the chunk size stay as a single chunk. Overlap (
 
 ## Evaluation
 
-The eval suite runs golden questions from `eval/qa_pairs.json` (or a custom set). You build the set yourself — each item is a question plus signals for what a good answer looks like.
+The eval suite runs golden questions from `eval/qa_pairs.json` (10 questions by default, or a custom set). You build the set yourself — each item is a question plus signals for what a good answer looks like.
 
 ### Three evaluation layers
 
@@ -363,8 +393,8 @@ qabot/
 ├── assets/logo.png
 ├── .devcontainer/         # VS Code / GitHub Codespaces config
 ├── eval/
-│   ├── qa_pairs.json      # Golden Q&A for evaluation demo
-│   └── sample_policy.txt  # Enterprise-scale sample handbook
+│   ├── qa_pairs.json      # 10 golden Q&A pairs for evaluation demo
+│   └── sample_policy.txt  # 500-line enterprise-scale sample handbook
 ├── src/
 │   ├── rag_config.py      # RAG defaults and index key helpers
 │   ├── loader.py
@@ -392,13 +422,30 @@ python -m unittest discover -s tests -v
 
 Unit tests cover chunking, upload cache signatures, RAG config keys, and evaluation logic (keyword, IR, and mocked RAGAS) — no OpenAI API key required.
 
+## FAQ
+
+**Do I need to re-upload documents after restarting Streamlit?**
+Yes — upload state lives in the session. ChromaDB vectors persist on disk, so re-uploading the same files with the same chunk settings skips re-embedding via the upload signature cache.
+
+**Why does the model say "I don't know" for valid questions?**
+The grounded prompt refuses when retrieved chunks lack evidence. Try increasing **top-k** or **chunk overlap**, or check that the source document contains selectable text (not a scanned image).
+
+**What's the difference between retrieval hit rate and grounded answer rate?**
+Retrieval hit rate checks whether keywords appear in retrieved chunks. Grounded answer rate requires both a retrieval hit **and** matching keywords in the generated answer — catching cases where the LLM hallucinates despite poor retrieval.
+
+**Can I run evaluation without uploading my own docs?**
+Yes. Download **Sample handbook** from the Evaluate tab, upload it on the Ask tab, then run evaluation against the default 10-question set.
+
+**Can I use local models instead of OpenAI?**
+Not out of the box — OpenAI is the default via LlamaIndex. Swap `Settings.llm` and `Settings.embed_model` in code for Ollama or other providers.
+
 ## Troubleshooting
 
 | Issue | Fix |
 |-------|-----|
 | `OPENAI_API_KEY` errors | Add the key to `.env` in the project root and restart Streamlit |
 | Sidebar shows "Missing API key" | Confirm `.env` is in the project root (same directory as `app.py`) |
-| Index rebuilds on every rerun | Ensure you uploaded files in the current session; the app caches by upload signature + chunk config |
+| Index rebuilds on every rerun | Re-upload files in the current session; caching requires an active upload + matching chunk config |
 | Empty or garbled PDF text | PDFs must contain selectable text; scanned images need OCR (not included) |
 | Slow first query | Initial OpenAI and ChromaDB warm-up is normal; subsequent queries reuse the stored index |
 | RAGAS fails or times out | RAGAS makes extra LLM calls per question; check API quota and network access |
@@ -418,7 +465,9 @@ Unit tests cover chunking, upload cache signatures, RAG config keys, and evaluat
 
 **Layered evaluation** — keyword checks and IR metrics are fast and deterministic. RAGAS adds LLM-as-judge scoring for deeper quality signals. Together they support regression testing without manual review on every change.
 
-## Limitations
+## Limitations & roadmap
+
+**Current limitations:**
 
 - **No auth** — intended for local or trusted use only
 - **PDF quality** — text extraction depends on PDF structure; scanned images need OCR (not included)
@@ -426,6 +475,13 @@ Unit tests cover chunking, upload cache signatures, RAG config keys, and evaluat
 - **Dense retrieval only** — no BM25, hybrid search, or reranking
 - **Eval keywords** — simple substring checks; RAGAS helps but neither replaces human grading at scale
 - **Cost** — indexing, queries, and RAGAS evaluation use OpenAI API credits
+
+**Planned improvements:**
+
+- Model picker in the UI (embedding + LLM selection)
+- Hybrid retrieval (dense + BM25) and optional reranking
+- REST API wrapper over `src/`
+- OCR support for scanned PDFs
 
 ## Dev container
 
@@ -435,7 +491,7 @@ To use locally in VS Code: **Dev Containers: Reopen in Container**, then add `OP
 
 ## Contributing
 
-Issues and pull requests are welcome on [GitHub](https://github.com/wasimahmadpk/qabot).
+Issues and pull requests are welcome on [GitHub](https://github.com/wasimahmadpk/qabot). If QABot is useful to you, consider starring the repo — it helps others discover the project.
 
 ## Author
 
