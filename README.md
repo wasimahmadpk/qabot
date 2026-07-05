@@ -27,10 +27,10 @@
 
 **QABot** is a [retrieval-augmented generation (RAG)](https://docs.llamaindex.ai/en/stable/understanding/rag/) app for teams who want more than a hello-world tutorial. Upload PDF, TXT, or DOCX files, ask questions in natural language, and get **grounded answers with inline `[file_name, chunk_id]` citations**. Vectors persist in **ChromaDB**; embeddings and answers use **OpenAI** via **LlamaIndex**.
 
-| | |
-|---|---|
-| **Ask tab** | Upload docs, index into ChromaDB, query with citations |
-| **Evaluate tab** | Score retrieval and answer quality with keyword, IR, and optional RAGAS metrics |
+| Tab | What you do |
+|-----|-------------|
+| **Ask** | Upload docs, index into ChromaDB, query with citations |
+| **Evaluate** | Score retrieval and answer quality with keyword, IR, and optional RAGAS metrics |
 | **Built-in demo** | 500-line sample handbook + 10 golden Q&A pairs (including a refusal test) |
 | **Headless-ready** | `src/` pipeline is UI-agnostic — same modules can back an API or MCP server |
 
@@ -38,7 +38,7 @@
 
 ```bash
 git clone https://github.com/wasimahmadpk/qabot.git && cd qabot
-python -m venv venv && source venv/bin/activate
+python -m venv venv && source venv/bin/activate   # Windows: venv\Scripts\activate
 pip install -r requirements.txt
 echo "OPENAI_API_KEY=sk-your-key-here" > .env
 streamlit run app.py
@@ -46,11 +46,12 @@ streamlit run app.py
 
 Open `http://localhost:8501`, upload `eval/sample_policy.txt` (downloadable from the **Evaluate** tab), and ask *"How many remote days per week are allowed?"*
 
-> **No local setup?** Click **Open in GitHub Codespaces** above, add `OPENAI_API_KEY` as a Codespaces secret, and the dev container installs dependencies and starts Streamlit automatically.
+> **No local setup?** Click **Open in GitHub Codespaces** above, add `OPENAI_API_KEY` as a [Codespaces secret](https://docs.github.com/en/codespaces/managing-your-codespaces/managing-secrets-for-your-codespaces), and the dev container installs dependencies and starts Streamlit on port 8501.
 
 ## Table of contents
 
 - [Why QABot?](#why-qabot)
+- [UI overview](#ui-overview)
 - [Tech stack](#tech-stack)
 - [Features](#features)
 - [Architecture](#architecture)
@@ -88,6 +89,34 @@ Most RAG tutorials stop at "ask a question, get an answer." QABot is built for *
 - **Policy & handbook Q&A** — employees ask HR or IT questions against internal docs
 - **RAG prototyping** — tune chunk size, overlap, and top-k without writing boilerplate
 - **Regression testing** — measure retrieval ranking and answer quality before shipping prompt or config changes
+
+## UI overview
+
+QABot runs as a single Streamlit app with two tabs and a sidebar for status and tuning.
+
+```
+┌─────────────────────────────────────────────────────────────┐
+│  QABot — Grounded answers from your documents               │
+├─────────────────────────────────────────────────────────────┤
+│  [ Ask ]  [ Evaluate ]                                      │
+├─────────────────────────────────────────────────────────────┤
+│  Ask tab                                                    │
+│    • File uploader (PDF, TXT, DOCX)                         │
+│    • Sample question dropdown + text input                  │
+│    • Answer card with latency + expandable source chunks      │
+├─────────────────────────────────────────────────────────────┤
+│  Evaluate tab                                               │
+│    • Run evaluation (keyword + IR) / Run RAGAS              │
+│    • Metric cards + expandable per-question results           │
+│    • Eval set editor + sample handbook download             │
+└─────────────────────────────────────────────────────────────┘
+
+Sidebar
+  Status — API key, index ready, doc/chunk counts
+  Advanced settings — chunk strategy, size, overlap, top-k
+```
+
+The sidebar shows a green **API connected** indicator when `OPENAI_API_KEY` is loaded, and **Index ready** once documents are embedded into ChromaDB.
 
 ## Tech stack
 
@@ -221,6 +250,8 @@ All employees may work remotely up to three days per week [sample_policy.txt, 2]
 ```
 
 Expand **Sources** to inspect the retrieved chunks — each shows `file_name`, `chunk_id`, similarity score, and the raw chunk text. This makes it easy to verify that answers are grounded in your documents rather than model memory.
+
+After running **Run evaluation** on the default 10-question set against the sample handbook, expect strong keyword and IR scores (most questions map to a single labeled chunk). The refusal question (*"What is the capital of France?"*) checks that the model says "I don't know" without requiring a retrieval hit.
 
 ## RAG settings
 
@@ -488,6 +519,8 @@ Not out of the box — OpenAI is the default via LlamaIndex. Swap `Settings.llm`
 A `.devcontainer/` config is included for VS Code and GitHub Codespaces. On attach, it installs dependencies from `requirements.txt` and starts Streamlit on port 8501.
 
 To use locally in VS Code: **Dev Containers: Reopen in Container**, then add `OPENAI_API_KEY` to your environment or a `.env` file inside the container workspace.
+
+For Codespaces, set `OPENAI_API_KEY` under **Settings → Secrets and variables → Codespaces** before launching.
 
 ## Contributing
 
