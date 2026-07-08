@@ -27,12 +27,23 @@
 
 **QABot** is a [retrieval-augmented generation (RAG)](https://docs.llamaindex.ai/en/stable/understanding/rag/) app for teams who want more than a hello-world tutorial. Upload PDF, TXT, or DOCX files, ask questions in natural language, and get **grounded answers with inline `[file_name, chunk_id]` citations**. Vectors persist in **ChromaDB**; embeddings and answers use **OpenAI** via **LlamaIndex**.
 
-| Tab | What you do |
-|-----|-------------|
-| **Ask** | Upload docs, index into ChromaDB, query with citations |
-| **Evaluate** | Score retrieval and answer quality with keyword, IR, and optional RAGAS metrics |
+| | |
+|---|---|
+| **Ask tab** | Upload docs → index into ChromaDB → query with citations and source chunks |
+| **Evaluate tab** | Score retrieval and answer quality with keyword, IR, and optional RAGAS metrics |
 | **Built-in demo** | 500-line sample handbook + 10 golden Q&A pairs (including a refusal test) |
 | **Headless-ready** | `src/` pipeline is UI-agnostic — same modules can back an API or MCP server |
+
+### How it works
+
+```
+Upload docs  →  Chunk + embed  →  Store in ChromaDB  →  Ask a question  →  Answer + citations
+                              ↘  (cached by upload signature + chunk config)
+```
+
+1. **Index once** — parse your files, chunk with tunable settings, embed with OpenAI, persist vectors locally.
+2. **Query many times** — each question embeds only the query, retrieves top-k chunks, and generates a grounded answer.
+3. **Evaluate on demand** — run golden Q&A tests to measure retrieval ranking and answer quality before you change prompts or settings.
 
 ### Quick start
 
@@ -46,10 +57,17 @@ streamlit run app.py
 
 Open `http://localhost:8501`, upload `eval/sample_policy.txt` (downloadable from the **Evaluate** tab), and ask *"How many remote days per week are allowed?"*
 
+Verify the install without an API key:
+
+```bash
+python -m unittest discover -s tests -v
+```
+
 > **No local setup?** Click **Open in GitHub Codespaces** above, add `OPENAI_API_KEY` as a [Codespaces secret](https://docs.github.com/en/codespaces/managing-your-codespaces/managing-secrets-for-your-codespaces), and the dev container installs dependencies and starts Streamlit on port 8501.
 
 ## Table of contents
 
+- [How it works](#how-it-works)
 - [Why QABot?](#why-qabot)
 - [UI overview](#ui-overview)
 - [Tech stack](#tech-stack)
@@ -71,6 +89,8 @@ Open `http://localhost:8501`, upload `eval/sample_policy.txt` (downloadable from
 - [Limitations & roadmap](#limitations--roadmap)
 - [Dev container](#dev-container)
 - [Contributing](#contributing)
+- [License](#license)
+- [Author](#author)
 
 ## Why QABot?
 
@@ -190,6 +210,8 @@ At query time, only the **user's question** is embedded. Stored document vectors
 
 ## Installation
 
+For the fastest path, use the [Quick start](#quick-start) above. Full setup:
+
 ### 1. Clone and install
 
 ```bash
@@ -200,6 +222,7 @@ python -m venv venv
 source venv/bin/activate          # Windows: venv\Scripts\activate
 
 pip install -r requirements.txt
+python -m unittest discover -s tests -v   # optional — no API key needed
 ```
 
 ### 2. Configure OpenAI
@@ -252,6 +275,17 @@ All employees may work remotely up to three days per week [sample_policy.txt, 2]
 Expand **Sources** to inspect the retrieved chunks — each shows `file_name`, `chunk_id`, similarity score, and the raw chunk text. This makes it easy to verify that answers are grounded in your documents rather than model memory.
 
 After running **Run evaluation** on the default 10-question set against the sample handbook, expect strong keyword and IR scores (most questions map to a single labeled chunk). The refusal question (*"What is the capital of France?"*) checks that the model says "I don't know" without requiring a retrieval hit.
+
+Example summary metrics from **Run evaluation**:
+
+| Metric | Typical result (sample handbook) |
+|--------|----------------------------------|
+| Retrieval hit rate | High — keywords appear in retrieved chunks |
+| Grounded answer rate | High — answers match retrieval, not model memory |
+| Recall@k / MRR / NDCG@k | Strong — relevant chunks rank near the top |
+| Avg latency | ~500–1500 ms per question (depends on OpenAI) |
+
+The refusal item is scored separately: grounded answer rate checks for *"I don't know"* in the answer without requiring a retrieval hit.
 
 ## RAG settings
 
@@ -524,7 +558,17 @@ For Codespaces, set `OPENAI_API_KEY` under **Settings → Secrets and variables 
 
 ## Contributing
 
-Issues and pull requests are welcome on [GitHub](https://github.com/wasimahmadpk/qabot). If QABot is useful to you, consider starring the repo — it helps others discover the project.
+Contributions are welcome! A typical flow:
+
+1. Fork the repo and create a feature branch from `main`
+2. Make your changes and run `python -m unittest discover -s tests -v`
+3. Open a pull request with a short description of what changed and why
+
+Report bugs or suggest features via [GitHub Issues](https://github.com/wasimahmadpk/qabot/issues). If QABot is useful to you, consider starring the repo — it helps others discover the project.
+
+## License
+
+This project is open source under the [MIT License](https://opensource.org/licenses/MIT). Use it freely for learning, prototyping, and internal demos.
 
 ## Author
 
