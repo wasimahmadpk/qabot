@@ -1,6 +1,8 @@
+import base64
 import html
 import json
 import os
+from io import BytesIO
 from pathlib import Path
 
 import streamlit as st
@@ -40,7 +42,7 @@ st.set_page_config(
     page_title="QABot",
     page_icon="🤖",
     layout="wide",
-    initial_sidebar_state="collapsed",
+    initial_sidebar_state="expanded",
 )
 
 
@@ -54,36 +56,147 @@ def inject_styles():
             font-family: 'DM Sans', system-ui, sans-serif;
         }
 
+        .stApp {
+            background: linear-gradient(180deg, #f8fafc 0%, #ffffff 220px);
+        }
+
         .block-container {
-            padding-top: 2rem;
+            padding-top: 1.25rem;
             padding-bottom: 3rem;
-            max-width: 820px;
+            max-width: 1120px;
         }
 
         header[data-testid="stHeader"] {
             background: transparent;
         }
 
-        .app-header {
+        #MainMenu, footer, header[data-testid="stHeader"] button {
+            visibility: hidden;
+        }
+
+        .hero-shell {
+            background: linear-gradient(135deg, #0f172a 0%, #1e3a5f 55%, #0f766e 100%);
+            border-radius: 20px;
+            padding: 1.35rem 1.5rem;
+            margin-bottom: 1.5rem;
+            box-shadow: 0 18px 40px rgba(15, 23, 42, 0.18);
+        }
+
+        .hero-row {
             display: flex;
             align-items: center;
+            justify-content: space-between;
             gap: 1rem;
-            margin-bottom: 2rem;
+            flex-wrap: wrap;
+        }
+
+        .hero-brand {
+            display: flex;
+            align-items: center;
+            gap: 0.9rem;
+        }
+
+        .hero-copy {
+            min-width: 0;
         }
 
         .app-title {
-            font-size: 1.65rem;
+            font-size: 1.55rem;
             font-weight: 700;
             letter-spacing: -0.03em;
-            color: #0f172a;
+            color: #ffffff;
             margin: 0;
             line-height: 1.2;
         }
 
         .app-tagline {
-            color: #64748b;
-            font-size: 0.92rem;
+            color: rgba(255, 255, 255, 0.78);
+            font-size: 0.9rem;
             margin: 0.2rem 0 0 0;
+        }
+
+        .status-row {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 0.45rem;
+            justify-content: flex-end;
+        }
+
+        .status-chip {
+            display: inline-flex;
+            align-items: center;
+            gap: 0.4rem;
+            background: rgba(255, 255, 255, 0.12);
+            border: 1px solid rgba(255, 255, 255, 0.18);
+            color: #f8fafc;
+            font-size: 0.78rem;
+            font-weight: 500;
+            padding: 0.35rem 0.7rem;
+            border-radius: 999px;
+            backdrop-filter: blur(6px);
+        }
+
+        .panel-card {
+            background: #ffffff;
+            border: 1px solid #e2e8f0;
+            border-radius: 18px;
+            padding: 1.15rem 1.2rem;
+            box-shadow: 0 8px 24px rgba(15, 23, 42, 0.04);
+            margin-bottom: 1rem;
+        }
+
+        .panel-title {
+            font-size: 0.82rem;
+            font-weight: 700;
+            letter-spacing: 0.04em;
+            text-transform: uppercase;
+            color: #64748b;
+            margin: 0 0 0.85rem 0;
+        }
+
+        .panel-subtitle {
+            color: #64748b;
+            font-size: 0.88rem;
+            margin: -0.35rem 0 0.85rem 0;
+            line-height: 1.45;
+        }
+
+        .doc-list {
+            display: flex;
+            flex-direction: column;
+            gap: 0.45rem;
+            margin-top: 0.75rem;
+        }
+
+        .doc-item {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            gap: 0.75rem;
+            background: #f8fafc;
+            border: 1px solid #e8edf2;
+            border-radius: 10px;
+            padding: 0.55rem 0.75rem;
+            font-size: 0.86rem;
+            color: #334155;
+        }
+
+        .doc-item span {
+            overflow: hidden;
+            text-overflow: ellipsis;
+            white-space: nowrap;
+        }
+
+        .doc-badge {
+            flex-shrink: 0;
+            background: #e0f2fe;
+            color: #0369a1;
+            font-size: 0.68rem;
+            font-weight: 700;
+            letter-spacing: 0.03em;
+            text-transform: uppercase;
+            padding: 0.18rem 0.45rem;
+            border-radius: 999px;
         }
 
         .empty-state {
@@ -167,6 +280,30 @@ def inject_styles():
         .status-warn { background: #f59e0b; }
         .status-bad { background: #ef4444; }
 
+        .sidebar-card {
+            background: #ffffff;
+            border: 1px solid #e2e8f0;
+            border-radius: 14px;
+            padding: 0.85rem 0.95rem;
+            margin-bottom: 0.85rem;
+        }
+
+        .sidebar-card p {
+            margin: 0.35rem 0 0 0;
+            color: #475569;
+            font-size: 0.86rem;
+            line-height: 1.45;
+        }
+
+        .sidebar-label {
+            font-size: 0.72rem;
+            font-weight: 700;
+            letter-spacing: 0.05em;
+            text-transform: uppercase;
+            color: #94a3b8;
+            margin: 0;
+        }
+
         div[data-testid="stMetric"] {
             background: #f8fafc;
             border: 1px solid #e2e8f0;
@@ -178,18 +315,35 @@ def inject_styles():
             font-size: 0.75rem !important;
         }
 
+        .metric-section {
+            background: #ffffff;
+            border: 1px solid #e2e8f0;
+            border-radius: 18px;
+            padding: 1rem 1rem 0.35rem 1rem;
+            margin: 1rem 0 1.25rem 0;
+            box-shadow: 0 8px 24px rgba(15, 23, 42, 0.04);
+        }
+
+        .metric-section h4 {
+            margin: 0 0 0.75rem 0;
+            color: #0f172a;
+            font-size: 0.95rem;
+            font-weight: 700;
+        }
+
         .stTabs [data-baseweb="tab-list"] {
             gap: 4px;
             background: #f1f5f9;
             padding: 4px;
             border-radius: 12px;
             width: fit-content;
+            margin-bottom: 0.5rem;
         }
 
         .stTabs [data-baseweb="tab"] {
             border-radius: 9px;
-            padding: 0.45rem 1.1rem;
-            font-weight: 500;
+            padding: 0.5rem 1.25rem;
+            font-weight: 600;
         }
 
         .stTabs [aria-selected="true"] {
@@ -198,11 +352,39 @@ def inject_styles():
         }
 
         section[data-testid="stSidebar"] {
-            background: #fafbfc;
+            background: #f8fafc;
+            border-right: 1px solid #e2e8f0;
+        }
+
+        section[data-testid="stSidebar"] > div {
+            padding-top: 1.25rem;
         }
 
         div[data-testid="stFileUploader"] section {
             border-radius: 14px;
+            border-style: dashed;
+            background: #f8fafc;
+        }
+
+        div[data-testid="stTextArea"] textarea {
+            border-radius: 14px;
+            border-color: #cbd5e1;
+        }
+
+        .stButton > button[kind="primary"] {
+            border-radius: 12px;
+            font-weight: 600;
+            padding: 0.55rem 1.35rem;
+        }
+
+        @media (max-width: 900px) {
+            .hero-row {
+                align-items: flex-start;
+            }
+
+            .status-row {
+                justify-content: flex-start;
+            }
         }
         </style>
         """,
@@ -226,25 +408,67 @@ def current_rag_settings():
     }
 
 
+def status_chips_html():
+    api_ok = bool(os.getenv("OPENAI_API_KEY"))
+    indexed = st.session_state.get("query_engine") is not None
+    chunk_stats = st.session_state.get("chunk_stats", {})
+
+    chips = []
+    chips.append(
+        f'<span class="status-chip">'
+        f'<span class="status-dot {"status-ok" if api_ok else "status-bad"}"></span>'
+        f'{"API connected" if api_ok else "Missing API key"}'
+        f"</span>"
+    )
+    if indexed:
+        docs = st.session_state.get("doc_count", 0)
+        chunks = chunk_stats.get("total_chunks", 0)
+        chips.append(
+            f'<span class="status-chip">'
+            f'<span class="status-dot status-ok"></span>'
+            f"{docs} docs · {chunks} chunks"
+            f"</span>"
+        )
+    else:
+        chips.append(
+            '<span class="status-chip">'
+            '<span class="status-dot status-warn"></span>'
+            "No index yet"
+            "</span>"
+        )
+    return f'<div class="status-row">{"".join(chips)}</div>'
+
+
 def render_header():
     logo = Image.open("assets/logo.png")
-    col_logo, col_text = st.columns([1, 7], vertical_alignment="center")
-    with col_logo:
-        st.image(logo, width=56)
-    with col_text:
-        st.markdown(
-            """
-            <div>
-                <p class="app-title">QABot</p>
-                <p class="app-tagline">Grounded answers from your documents</p>
+    st.markdown(
+        f"""
+        <div class="hero-shell">
+            <div class="hero-row">
+                <div class="hero-brand">
+                    <img src="data:image/png;base64,{_image_to_base64(logo)}" width="52" height="52" style="border-radius: 14px;" />
+                    <div class="hero-copy">
+                        <p class="app-title">QABot</p>
+                        <p class="app-tagline">Grounded answers from your documents</p>
+                    </div>
+                </div>
+                {status_chips_html()}
             </div>
-            """,
-            unsafe_allow_html=True,
-        )
+        </div>
+        """,
+        unsafe_allow_html=True,
+    )
+
+
+def _image_to_base64(image):
+    buffer = BytesIO()
+    image.save(buffer, format="PNG")
+    return base64.b64encode(buffer.getvalue()).decode("utf-8")
 
 
 def render_engineer_settings():
     with st.sidebar.expander("Advanced settings", expanded=False):
+        st.caption("Chunking changes trigger a re-index. Top-k applies immediately.")
         st.selectbox(
             "Chunk strategy",
             options=list(CHUNK_STRATEGIES.keys()),
@@ -270,32 +494,22 @@ def render_engineer_settings():
 
 
 def render_sidebar():
-    api_ok = bool(os.getenv("OPENAI_API_KEY"))
-    indexed = st.session_state.get("query_engine") is not None
-    chunk_stats = st.session_state.get("chunk_stats", {})
+    settings = current_rag_settings()
 
     with st.sidebar:
-        st.markdown("##### Status")
-        dot = "status-ok" if api_ok else "status-bad"
+        st.markdown('<p class="sidebar-label">Workspace</p>', unsafe_allow_html=True)
         st.markdown(
-            f'<span class="status-dot {dot}"></span>'
-            f'{"API connected" if api_ok else "Missing API key"}',
+            f"""
+            <div class="sidebar-card">
+                <p class="sidebar-label">RAG profile</p>
+                <p>
+                    {settings["chunk_strategy"]} chunks · {settings["chunk_size"]} tokens ·
+                    overlap {settings["chunk_overlap"]} · top-{settings["top_k"]}
+                </p>
+            </div>
+            """,
             unsafe_allow_html=True,
         )
-        if indexed:
-            docs = st.session_state.get("doc_count", 0)
-            chunks = chunk_stats.get("total_chunks", 0)
-            st.markdown(
-                f'<span class="status-dot status-ok"></span>{docs} docs · {chunks} chunks',
-                unsafe_allow_html=True,
-            )
-        else:
-            st.markdown(
-                '<span class="status-dot status-warn"></span>No index yet',
-                unsafe_allow_html=True,
-            )
-
-        st.divider()
         render_engineer_settings()
 
 
@@ -400,13 +614,46 @@ def render_sources(sources):
             )
 
 
+def render_document_list(uploaded_files):
+    items = []
+    for uploaded_file in uploaded_files:
+        ext = Path(uploaded_file.name).suffix.replace(".", "").upper() or "FILE"
+        items.append(
+            f"""
+            <div class="doc-item">
+                <span>{html.escape(uploaded_file.name)}</span>
+                <span class="doc-badge">{ext}</span>
+            </div>
+            """
+        )
+    st.markdown(
+        f"""
+        <div class="doc-list">
+            {"".join(items)}
+        </div>
+        """,
+        unsafe_allow_html=True,
+    )
+
+
 def render_qa_tab():
+    st.markdown(
+        """
+        <div class="panel-card">
+            <p class="panel-title">Documents</p>
+            <p class="panel-subtitle">Upload PDF, TXT, or DOCX files to build a searchable knowledge base.</p>
+        </div>
+        """,
+        unsafe_allow_html=True,
+    )
+
     uploaded_files = st.file_uploader(
         "Documents",
         accept_multiple_files=True,
         type=["pdf", "txt", "docx"],
         label_visibility="collapsed",
         help="PDF, TXT, or DOCX",
+        key="qa_file_uploader",
     )
 
     if not uploaded_files:
@@ -415,7 +662,7 @@ def render_qa_tab():
             """
             <div class="empty-state">
                 <strong>Upload documents to begin</strong>
-                Drop PDF, TXT, or DOCX files above to build your knowledge base.
+                Drop PDF, TXT, or DOCX files to build your knowledge base, then ask questions with citations.
             </div>
             """,
             unsafe_allow_html=True,
@@ -429,51 +676,82 @@ def render_qa_tab():
         st.warning("Could not parse any documents from your upload.")
         return
 
-    if "question_box" not in st.session_state:
-        st.session_state.question_box = ""
+    docs_col, ask_col = st.columns([1, 1.35], gap="large")
 
-    st.markdown("<div style='height: 1.5rem'></div>", unsafe_allow_html=True)
+    with docs_col:
+        st.markdown(
+            """
+            <div class="panel-card">
+                <p class="panel-title">Knowledge base</p>
+                <p class="panel-subtitle">Indexed files in this session. Change chunk settings in the sidebar to rebuild.</p>
+            </div>
+            """,
+            unsafe_allow_html=True,
+        )
+        render_document_list(uploaded_files)
+        chunk_stats = st.session_state.get("chunk_stats", {})
+        st.caption(
+            f"{st.session_state.get('doc_count', 0)} documents · "
+            f"{chunk_stats.get('total_chunks', 0)} chunks ready"
+        )
 
-    st.selectbox(
-        "Examples",
-        options=["— pick a sample question —", *SAMPLE_QUESTIONS],
-        key="example_picker",
-        on_change=apply_example_question,
-        label_visibility="collapsed",
-    )
+    with ask_col:
+        st.markdown(
+            """
+            <div class="panel-card">
+                <p class="panel-title">Ask a question</p>
+                <p class="panel-subtitle">Pick a sample prompt or write your own. Answers include source citations.</p>
+            </div>
+            """,
+            unsafe_allow_html=True,
+        )
 
-    query = st.text_area(
-        "Question",
-        height=88,
-        placeholder="Ask anything about your documents…",
-        key="question_box",
-        label_visibility="collapsed",
-    )
+        if "question_box" not in st.session_state:
+            st.session_state.question_box = ""
 
-    if st.button("Ask", type="primary", use_container_width=False):
-        if query.strip():
+        st.selectbox(
+            "Examples",
+            options=["— pick a sample question —", *SAMPLE_QUESTIONS],
+            key="example_picker",
+            on_change=apply_example_question,
+            label_visibility="collapsed",
+        )
+
+        query = st.text_area(
+            "Question",
+            height=110,
+            placeholder="Ask anything about your documents…",
+            key="question_box",
+            label_visibility="collapsed",
+        )
+
+        ask_col_btn, _ = st.columns([1, 2])
+        with ask_col_btn:
+            ask_clicked = st.button("Ask", type="primary", use_container_width=True)
+
+        if ask_clicked and query.strip():
             with st.spinner("Thinking…"):
                 result = query_index(query_engine, query.strip())
             st.session_state.last_result = result
 
-    result = st.session_state.get("last_result")
-    if not result:
-        return
+        result = st.session_state.get("last_result")
+        if not result:
+            return
 
-    st.markdown("<div style='height: 1.25rem'></div>", unsafe_allow_html=True)
-    st.markdown(
-        f"""
-        <div class="answer-card">
-            {html.escape(result['answer'])}
-            <div class="answer-meta">
-                <span class="meta-pill">{result['latency_ms']:.0f} ms</span>
-                <span class="meta-pill">{len(result['sources'])} sources</span>
+        st.markdown("<div style='height: 0.75rem'></div>", unsafe_allow_html=True)
+        st.markdown(
+            f"""
+            <div class="answer-card">
+                {html.escape(result['answer'])}
+                <div class="answer-meta">
+                    <span class="meta-pill">{result['latency_ms']:.0f} ms</span>
+                    <span class="meta-pill">{len(result['sources'])} sources</span>
+                </div>
             </div>
-        </div>
-        """,
-        unsafe_allow_html=True,
-    )
-    render_sources(result["sources"])
+            """,
+            unsafe_allow_html=True,
+        )
+        render_sources(result["sources"])
 
 
 def render_eval_tab():
@@ -492,6 +770,16 @@ def render_eval_tab():
 
     active_pairs = get_active_qa_pairs()
     eval_name = st.session_state.get("eval_set_name", "default")
+
+    st.markdown(
+        """
+        <div class="panel-card">
+            <p class="panel-title">Evaluation suite</p>
+            <p class="panel-subtitle">Measure retrieval ranking and answer quality against golden Q&A pairs.</p>
+        </div>
+        """,
+        unsafe_allow_html=True,
+    )
 
     run_col, ragas_col, info_col = st.columns([1, 1, 2], vertical_alignment="center")
     with run_col:
@@ -591,7 +879,14 @@ def render_eval_tab():
         return
 
     if report:
-        st.markdown("##### Keyword evaluation")
+        st.markdown(
+            """
+            <div class="metric-section">
+                <h4>Keyword evaluation</h4>
+            </div>
+            """,
+            unsafe_allow_html=True,
+        )
         summary = report["summary"]
         cols = st.columns(4)
         cols[0].metric("Questions", summary["total"])
@@ -628,7 +923,14 @@ def render_eval_tab():
             st.dataframe(display_rows, use_container_width=True, hide_index=True)
 
     if ragas_report:
-        st.markdown("##### RAGAS (LLM-as-judge)")
+        st.markdown(
+            """
+            <div class="metric-section">
+                <h4>RAGAS (LLM-as-judge)</h4>
+            </div>
+            """,
+            unsafe_allow_html=True,
+        )
         ragas_summary = ragas_report["summary"]
         metric_keys = ragas_report.get("metrics", [])
         metric_cols = st.columns(len(metric_keys) + 1)
