@@ -17,6 +17,7 @@
   <img src="https://img.shields.io/badge/chroma-1.0-orange" alt="ChromaDB" />
   <img src="https://img.shields.io/badge/ragas-0.3-purple" alt="RAGAS" />
   <img src="https://img.shields.io/badge/openai-embeddings%20%2B%20LLM-lightgrey" alt="OpenAI" />
+  <a href="LICENSE"><img src="https://img.shields.io/badge/license-MIT-blue" alt="MIT License" /></a>
 </p>
 
 <p align="center">
@@ -57,6 +58,16 @@ streamlit run app.py
 
 Open `http://localhost:8501`, upload `eval/sample_policy.txt` (downloadable from the **Evaluate** tab), and ask *"How many remote days per week are allowed?"*
 
+**Built-in smoke tests** — use the sample-question dropdown on the Ask tab:
+
+| Question | What it tests |
+|----------|---------------|
+| *How many remote days per week are allowed?* | Grounded answer from handbook |
+| *What are the core hours on remote days?* | Multi-keyword retrieval |
+| *How should employees access systems remotely?* | Policy detail lookup |
+| *What is the minimum password length?* | Numeric fact extraction |
+| *What is the capital of France?* | Refusal when evidence is missing |
+
 Verify the install without an API key:
 
 ```bash
@@ -73,6 +84,7 @@ python -m unittest discover -s tests -v
 - [Tech stack](#tech-stack)
 - [Features](#features)
 - [Architecture](#architecture)
+- [Session vs. persistence](#session-vs-persistence)
 - [Prerequisites](#prerequisites)
 - [Installation](#installation)
 - [Demo walkthrough](#demo-walkthrough)
@@ -112,31 +124,34 @@ Most RAG tutorials stop at "ask a question, get an answer." QABot is built for *
 
 ## UI overview
 
-QABot runs as a single Streamlit app with two tabs and a sidebar for status and tuning.
+QABot runs as a single Streamlit app with a hero header, two main tabs, and a sidebar for RAG tuning.
 
 ```
-┌─────────────────────────────────────────────────────────────┐
-│  QABot — Grounded answers from your documents               │
-├─────────────────────────────────────────────────────────────┤
-│  [ Ask ]  [ Evaluate ]                                      │
-├─────────────────────────────────────────────────────────────┤
-│  Ask tab                                                    │
-│    • File uploader (PDF, TXT, DOCX)                         │
-│    • Sample question dropdown + text input                  │
-│    • Answer card with latency + expandable source chunks      │
-├─────────────────────────────────────────────────────────────┤
-│  Evaluate tab                                               │
-│    • Run evaluation (keyword + IR) / Run RAGAS              │
-│    • Metric cards + expandable per-question results           │
-│    • Eval set editor + sample handbook download             │
-└─────────────────────────────────────────────────────────────┘
+┌──────────────────────────────────────────────────────────────────────┐
+│  Hero — logo · title · status chips (API · index · docs/chunks)      │
+├──────────────────────────────────────────────────────────────────────┤
+│  [ Ask ]  [ Evaluate ]                                               │
+├──────────────────────────────────────────────────────────────────────┤
+│  Ask tab                                                             │
+│    File uploader (PDF, TXT, DOCX)                                    │
+│    ┌─────────────────────────┬────────────────────────────────────┐  │
+│    │ Knowledge base          │ Ask a question                     │  │
+│    │ Indexed file list       │ Sample picker · question box · Ask │  │
+│    │ Doc + chunk counts      │ Answer card · expandable sources   │  │
+│    └─────────────────────────┴────────────────────────────────────┘  │
+├──────────────────────────────────────────────────────────────────────┤
+│  Evaluate tab                                                        │
+│    Run evaluation (keyword + IR) · Run RAGAS                         │
+│    Metric cards · per-question results · eval set editor             │
+│    Downloads — sample handbook + default eval JSON                   │
+└──────────────────────────────────────────────────────────────────────┘
 
-Sidebar
-  Status — API key, index ready, doc/chunk counts
-  Advanced settings — chunk strategy, size, overlap, top-k
+Sidebar — Workspace
+  RAG profile — active chunk strategy, size, overlap, top-k
+  Advanced settings — change chunking (re-index) or top-k (instant)
 ```
 
-The sidebar shows a green **API connected** indicator when `OPENAI_API_KEY` is loaded, and **Index ready** once documents are embedded into ChromaDB.
+The hero bar shows live status chips: **API connected** when `OPENAI_API_KEY` is loaded, **Index ready** with doc/chunk counts once documents are embedded, or **No index yet** before upload.
 
 ## Tech stack
 
@@ -202,6 +217,23 @@ flowchart LR
 
 At query time, only the **user's question** is embedded. Stored document vectors are read from ChromaDB.
 
+### Session vs. persistence
+
+Streamlit session state tracks uploads and the active index handle. ChromaDB stores vectors on disk keyed by upload signature + chunk config.
+
+```mermaid
+flowchart TD
+    A[Upload files] --> B{Same files + chunk settings?}
+    B -->|Yes, vectors on disk| C[Reuse ChromaDB collection — skip re-embed]
+    B -->|No| D[Parse · chunk · embed · persist]
+    D --> E[(chroma_db/)]
+    C --> E
+    F[Restart Streamlit] --> G[Re-upload in session]
+    G --> B
+```
+
+Re-uploading the same files with unchanged chunk settings after a restart is fast because the upload signature cache skips re-embedding.
+
 ## Prerequisites
 
 - **Python 3.10+** (3.11 recommended; matches the dev container)
@@ -253,12 +285,13 @@ Open the URL shown in the terminal (usually `http://localhost:8501`).
 
 Try the built-in sample in under two minutes:
 
-1. **Start the app** — `streamlit run app.py`
-2. **Upload** — on the **Ask** tab, upload `eval/sample_policy.txt` (or download it from the **Evaluate** tab → **Eval set & downloads**)
-3. **Wait for indexing** — the sidebar shows doc and chunk counts when ready
-4. **Ask** — pick a sample question from the dropdown or type your own, e.g. *"How many remote days per week are allowed?"*
-5. **Test refusal** — ask *"What is the capital of France?"* — the model should reply *"I don't know"* (no evidence in the handbook)
-6. **Evaluate** — switch to **Evaluate**, click **Run evaluation** for keyword + IR metrics, or **Run RAGAS** for LLM-as-judge scoring
+1. **Start the app** — `streamlit run app.py`; confirm the hero shows **API connected**
+2. **Upload** — on the **Ask** tab, upload `eval/sample_policy.txt` (or download it from **Evaluate** → **Eval set & downloads**)
+3. **Wait for indexing** — the hero chip updates to **Index ready** with doc/chunk counts
+4. **Ask** — use the sample-question dropdown or type your own, e.g. *"How many remote days per week are allowed?"*
+5. **Inspect sources** — expand **Sources** on the answer card to verify `[file_name, chunk_id]` citations
+6. **Test refusal** — ask *"What is the capital of France?"* — the model should reply *"I don't know"*
+7. **Evaluate** — switch to **Evaluate**, click **Run evaluation** for keyword + IR metrics, or **Run RAGAS** for LLM-as-judge scoring
 
 Each new question reuses the stored index. Documents are not re-embedded unless you upload new files or change chunk settings.
 
@@ -276,14 +309,14 @@ Expand **Sources** to inspect the retrieved chunks — each shows `file_name`, `
 
 After running **Run evaluation** on the default 10-question set against the sample handbook, expect strong keyword and IR scores (most questions map to a single labeled chunk). The refusal question (*"What is the capital of France?"*) checks that the model says "I don't know" without requiring a retrieval hit.
 
-Example summary metrics from **Run evaluation**:
+Example summary metrics from **Run evaluation** (shown as metric cards in the UI):
 
-| Metric | Typical result (sample handbook) |
-|--------|----------------------------------|
-| Retrieval hit rate | High — keywords appear in retrieved chunks |
-| Grounded answer rate | High — answers match retrieval, not model memory |
-| Recall@k / MRR / NDCG@k | Strong — relevant chunks rank near the top |
-| Avg latency | ~500–1500 ms per question (depends on OpenAI) |
+| UI metric | Maps to | Typical result (sample handbook) |
+|-----------|---------|----------------------------------|
+| Retrieval | Retrieval hit rate | High — keywords appear in retrieved chunks |
+| Grounded | Grounded answer rate | High — answers match retrieval, not model memory |
+| Recall@k / MRR / NDCG@k | IR ranking | Strong — relevant chunks rank near the top |
+| Latency | Avg latency | ~500–1500 ms per question (depends on OpenAI) |
 
 The refusal item is scored separately: grounded answer rate checks for *"I don't know"* in the answer without requiring a retrieval hit.
 
@@ -490,7 +523,7 @@ Unit tests cover chunking, upload cache signatures, RAG config keys, and evaluat
 ## FAQ
 
 **Do I need to re-upload documents after restarting Streamlit?**
-Yes — upload state lives in the session. ChromaDB vectors persist on disk, so re-uploading the same files with the same chunk settings skips re-embedding via the upload signature cache.
+Yes — the active upload list lives in session state, so you re-select files after a restart. ChromaDB vectors persist on disk; re-uploading the **same files with the same chunk settings** skips re-embedding via the upload signature cache (you'll see a quick "Indexing…" flash, not a full embed pass).
 
 **Why does the model say "I don't know" for valid questions?**
 The grounded prompt refuses when retrieved chunks lack evidence. Try increasing **top-k** or **chunk overlap**, or check that the source document contains selectable text (not a scanned image).
