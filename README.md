@@ -6,7 +6,7 @@
 
 <p align="center">
   <strong>Ask questions over your documents. Get grounded answers with citations.</strong><br />
-  A production-minded Streamlit RAG demo — tunable chunking, persistent ChromaDB, and three-layer evaluation.
+  A production-minded Streamlit RAG demo — tunable chunking, persistent ChromaDB, and three-layer evaluation for performance assessment.
 </p>
 
 <p align="center">
